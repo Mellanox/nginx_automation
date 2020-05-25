@@ -29,7 +29,7 @@ wrk_socket_timeout = 2
 home_dir = "/auto/mtrswgwork/simonra"
 wrk_output_file = "/tmp/wrk_out.log"
 wrk_log_dir = "/tmp/wrk_logs"
-script_logs_dir = "{home_dir}/temp/nginx_automation_client_logs".format(home_dir=home_dir)
+script_logs_dir = "{home_dir}/temp/nginx_automation_logs".format(home_dir=home_dir)
 script_output_log_file = "{logs_dir}/{log_name}".format(logs_dir=script_logs_dir,
                                                         log_name="wrk_client_script_stdout.txt")
 server_results_log_file = "{logs_dir}/{log_name}".format(logs_dir=script_logs_dir,
@@ -79,10 +79,8 @@ def log(line):
 
 def run_cleanup():
     """Run cleanup on remote servers."""
-    run_cmd_and_wait("rm -rf {dir}".format(dir=script_logs_dir))
     run_cmd_and_wait("rm -rf {dir}".format(dir=all_wrk_logs_dir))
     run_cmd_and_wait("mkdir {dir}".format(dir=all_wrk_logs_dir))
-    run_cmd_and_wait("mkdir {dir}".format(dir=script_logs_dir))
 
     # Cleanup server:
     run_remote_cmd(cmd="pkill -9 cpustat", host=nginx_server)

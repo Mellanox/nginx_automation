@@ -15,7 +15,7 @@ nginx_server = "rapid01.lab.mtl.com"
 user_name = "simonra"
 my_home = "/auto/mtrswgwork/simonra"
 results_directory = "{my_home}/temp/nginx_automation_results".format(my_home=my_home)
-client_result_directory = "{my_home}/temp/nginx_automation_client_logs".format(my_home=my_home)
+remote_logs_directory = "{my_home}/temp/nginx_automation_logs".format(my_home=my_home)
 run_server_cmd = "{my_home}/tools/nginx/scripts/run/run_server.py".format(my_home=my_home)
 run_client_cmd = "{my_home}/tools/nginx/scripts/run/run_client.py".format(my_home=my_home)
 parse_results_cmd = "{my_home}/tools/nginx/scripts/run/parse_results.py".format(my_home=my_home)
@@ -40,17 +40,17 @@ def signal_handler(sig, frame):
 def kill_scripts(do_sleep=True):
     """Kill remote scripts."""
     run_remote_cmd(
-        cmd="ps -ef | grep run_server | awk \'\"\'{print $2}\'\"\' | xargs sudo kill -9 >/dev/null 2>&1",
+        cmd="ps -ef | grep run_server.py | awk \'\"\'{print $2}\'\"\' | xargs sudo kill -9 > /dev/null 2>&1",
         host=nginx_server)
     run_remote_cmd(
-        cmd="ps -ef | grep cpustat | awk \'\"\'{print $2}\'\"\' | xargs sudo kill -9 >/dev/null 2>&1",
+        cmd="ps -ef | grep cpustat | awk \'\"\'{print $2}\'\"\' | xargs sudo kill -9 > /dev/null 2>&1",
         host=nginx_server)
     run_remote_cmd(
-        cmd="ps -ef | grep nginx | awk \'\"\'{print $2}\'\"\' | xargs sudo kill -9 >/dev/null 2>&1",
+        cmd="ps -ef | grep nginx | awk \'\"\'{print $2}\'\"\' | xargs sudo kill -9 > /dev/null 2>&1",
         host=nginx_server)
-    run_remote_cmd(cmd="pkill -9 cpustat >/dev/null 2>&1", host=nginx_server)
-    run_remote_cmd(cmd="pkill -9 nginx >/dev/null 2>&1", host=nginx_server)
-    run_cmd_get_output(cmd="ps - ef | grep run_client.py | awk '{print $2}' | xargs kill - 2 > /dev/null 2 > &1")
+    run_remote_cmd(cmd="pkill -9 cpustat > /dev/null 2>&1", host=nginx_server)
+    run_remote_cmd(cmd="pkill -9 nginx > /dev/null 2>&1", host=nginx_server)
+    run_cmd_get_output(cmd="ps -ef | grep run_client.py | awk '{print $2}' | xargs kill -2 > /dev/null 2>&1")
     if do_sleep is True:
         time.sleep(5)
 
@@ -69,6 +69,8 @@ def run_cleanup():
 
 def run(run_type):
     """Run single run kernel/VMA/VMA reference."""
+    run_cmd_and_wait("rm -rf {dir}".format(dir=remote_logs_directory))
+    run_cmd_and_wait("mkdir {dir}".format(dir=remote_logs_directory))
     run_dir = "{results_directory}/{run_type}".format(results_directory=results_directory, run_type=run_type)
     os.makedirs(run_dir)
 
@@ -90,7 +92,7 @@ def run(run_type):
             client_cmd = "{cmd} --file {file}.bin --connections {connections}".format(
                 cmd=run_client_cmd, file=file, connections=connections)
             run_cmd_get_output(client_cmd)
-            save_logs_cmd = "cp -rf {src} {dst}".format(src=client_result_directory, dst=iteration_dir)
+            save_logs_cmd = "cp -rf {src} {dst}".format(src=remote_logs_directory, dst=iteration_dir)
             run_cmd_and_wait(save_logs_cmd)
             run_cmd_and_wait("cp -f {file} {dst}".format(file=run_server_cmd, dst=iteration_dir))
             run_cmd_and_wait("cp -f {file} {dst}".format(file=run_client_cmd, dst=iteration_dir))

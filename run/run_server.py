@@ -13,6 +13,8 @@ from common import *
 # Variables:
 my_home = "/auto/mtrswgwork/simonra"
 dev_vma = "{my_home}/dev/libvma".format(my_home=my_home)
+remote_logs_directory = "{my_home}/temp/nginx_automation_logs".format(my_home=my_home)
+nginx_log = "{remote_logs_directory}/nginx_app_log.txt".format(remote_logs_directory=remote_logs_directory)
 tools = "{my_home}/tools".format(my_home=my_home)
 nginx_root = "{tools}/nginx".format(tools=tools)
 nginx_release_bin = "{tools}/nginx/sbin/nginx_release".format(tools=tools)
@@ -77,10 +79,10 @@ def run_nginx(library):
         env_variables = ""
 
     run_nginx_cmd = \
-        "{library} {env_variables} numactl --preferred {numa_node} {_bin} -c {conf_file} -p {root}".format(
+        "{library} {env_variables} numactl --preferred {numa_node} {_bin} -c {conf_file} -p {root} > {log} 2>&1".format(
             library=library, env_variables=env_variables,
             numa_node=numa_node, _bin=nginx_release_bin,
-            conf_file=nginx_conf_file, root=nginx_root
+            conf_file=nginx_conf_file, root=nginx_root, log=nginx_log
         )
     run_cmd_and_wait(cmd=run_nginx_cmd)
 
