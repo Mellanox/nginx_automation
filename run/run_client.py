@@ -30,14 +30,10 @@ home_dir = "/auto/mtrswgwork/simonra"
 wrk_output_file = "/tmp/wrk_out.log"
 wrk_log_dir = "/tmp/wrk_logs"
 script_logs_dir = "{home_dir}/temp/nginx_automation_logs".format(home_dir=home_dir)
-script_output_log_file = "{logs_dir}/{log_name}".format(logs_dir=script_logs_dir,
-                                                        log_name="wrk_client_script_stdout.txt")
-server_results_log_file = "{logs_dir}/{log_name}".format(logs_dir=script_logs_dir,
-                                                         log_name="server_results_log_file.json")
-client_results_log_file = "{logs_dir}/{log_name}".format(logs_dir=script_logs_dir,
-                                                         log_name="client_results_log_file.json")
-total_results_summary_log_file = "{logs_dir}/{log_name}".format(
-    logs_dir=script_logs_dir, log_name="total_results_summary_log_file.json")
+script_output_log_file = "{dir}/{name}".format(dir=script_logs_dir, name="wrk_client_script_stdout.txt")
+server_results_log_file = "{dir}/{name}".format(dir=script_logs_dir, name="server_results_log_file.json")
+client_results_log_file = "{dir}/{name}".format(dir=script_logs_dir, name="client_results_log_file.json")
+total_results_summary_log_file = "{dir}/{name}".format(dir=script_logs_dir, name="total_results_summary_log_file.json")
 all_wrk_logs_dir = "/tmp/all_wrk_logs_dir"
 cpustat_log_file = "/tmp/cpustat_log.txt"
 
@@ -47,7 +43,7 @@ cpustat_bin = "{home_dir}/{cpustat_path}".format(home_dir=home_dir, cpustat_path
 
 # Setup details:
 dest_ip = "1.1.62.27"
-dest_port = "80"
+dest_port = "8080"
 server_file = "10MB.bin"
 server_url = "http://{ip}:{port}".format(ip=dest_ip, port=dest_port)
 url = "{server_url}/{file}".format(server_url=server_url, file=server_file)

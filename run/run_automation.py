@@ -25,7 +25,7 @@ commands_log = "{my_home}/temp/nginx_automation_commands_log.txt".format(my_home
 # file_list = ["1KB", "10KB", "100KB", "1MB", "10MB"]
 # connections_list = ["1000", "256000"]
 
-run_type_list = ["kernel", "vma"]
+run_type_list = ["vma"]
 file_list = ["10MB"]
 connections_list = ["256000"]
 
@@ -39,18 +39,15 @@ def signal_handler(sig, frame):
 
 def kill_scripts(do_sleep=True):
     """Kill remote scripts."""
-    run_remote_cmd(
-        cmd="ps -ef | grep run_server.py | awk \'\"\'{print $2}\'\"\' | xargs sudo kill -9 > /dev/null 2>&1",
-        host=nginx_server)
+    run_cmd_get_output("ps -ef | grep run_server.py | awk '{print $2}' | xargs sudo kill -2 > /dev/null 2>&1")
+    run_cmd_get_output("ps -ef | grep run_client.py | awk '{print $2}' | xargs sudo kill -2 > /dev/null 2>&1")
     run_remote_cmd(
         cmd="ps -ef | grep cpustat | awk \'\"\'{print $2}\'\"\' | xargs sudo kill -9 > /dev/null 2>&1",
         host=nginx_server)
     run_remote_cmd(
         cmd="ps -ef | grep nginx | awk \'\"\'{print $2}\'\"\' | xargs sudo kill -9 > /dev/null 2>&1",
         host=nginx_server)
-    run_remote_cmd(cmd="pkill -9 cpustat > /dev/null 2>&1", host=nginx_server)
-    run_remote_cmd(cmd="pkill -9 nginx > /dev/null 2>&1", host=nginx_server)
-    run_cmd_get_output(cmd="ps -ef | grep run_client.py | awk '{print $2}' | xargs kill -2 > /dev/null 2>&1")
+
     if do_sleep is True:
         time.sleep(5)
 
@@ -85,8 +82,8 @@ def run(run_type):
             os.makedirs(iteration_dir)
             kill_scripts()
             print ">> Running server..."
-            server_cmd = "sudo {cmd} --run_type={run_type}".format(cmd=run_server_cmd, run_type=run_type)
-            run_remote_cmd_on_backround(cmd=server_cmd, host=nginx_server)
+            server_cmd = "{cmd} --run_type={run_type}".format(cmd=run_server_cmd, run_type=run_type)
+            run_cmd_on_background(cmd=server_cmd)
             time.sleep(5)
             print ">> Running client..."
             client_cmd = "{cmd} --file {file}.bin --connections {connections}".format(

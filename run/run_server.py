@@ -2,6 +2,7 @@
 
 """Nginx automation from server side."""
 
+import os
 import time
 import shutil
 import datetime
@@ -24,6 +25,8 @@ vma_log_file = "{my_home}/temp/vma_log.txt".format(my_home=my_home)
 vma_library = "{dev_vma}/src/vma/.libs/libvma.so".format(dev_vma=dev_vma)
 nginx_pid_file = "{nginx_root}/logs/nginx.pid".format(nginx_root=nginx_root)
 numa_node = 0
+nginx_server = "rapid01.lab.mtl.com"
+run_types = ["kernel", "vma"]
 vma_parameters = [
     "VMA_TX_SEGS_TCP=2000000",
     "VMA_RX_WRE=32000",
@@ -33,10 +36,8 @@ vma_parameters = [
     "VMA_CQ_MODERATION_PERIOD_USEC=1024",
     "VMA_CQ_MODERATION_COUNT=1024",
     "VMA_CQ_POLL_BATCH_MAX=128",
-    # "VMA_PROGRESS_ENGINE_INTERVAL=10",
-    # "VMA_PROGRESS_ENGINE_WCE_MAX=1024",
+    "VMA_TCP_SEND_BUFFER_SIZE=20000000",
 ]
-run_types = ["kernel", "vma"]
 
 
 def signal_handler(sig, frame):
@@ -49,11 +50,15 @@ def signal_handler(sig, frame):
 def run_cleanup():
     """Run clean up."""
     remove_vma_log_file_cmd = "rm -f {file}".format(file=vma_log_file)
-    run_cmd_and_wait(cmd=remove_vma_log_file_cmd)
+    run_remote_cmd_get_output(cmd=remove_vma_log_file_cmd, host=nginx_server)
     remove_nginx_pid_file_cmd = "rm -f {file}".format(file=nginx_pid_file)
-    run_cmd_and_wait(cmd=remove_nginx_pid_file_cmd)
-    clean_nginx_cmd = "sudo pkill - 9 nginx"
-    run_cmd_and_wait(cmd=clean_nginx_cmd)
+    run_remote_cmd_get_output(cmd=remove_nginx_pid_file_cmd, host=nginx_server)
+    clean_nginx_cmd = \
+        "ps -ef | grep nginx | grep -v {pid} | awk \'\"\'{{print $2}}\'\"\' | xargs sudo kill -9 > /dev/null 2>&1".format(
+            pid=os.getpid())
+    run_remote_cmd_get_output(cmd=clean_nginx_cmd, host=nginx_server)
+    clean_cpustat_cmd = "ps -ef | grep cpustat | awk \'\"\'{print $2}\'\"\' | xargs sudo kill -9 > /dev/null 2>&1"
+    run_remote_cmd_get_output(cmd=clean_cpustat_cmd, host=nginx_server)
 
 
 def init():
@@ -78,13 +83,14 @@ def run_nginx(library):
         library = ""
         env_variables = ""
 
-    run_nginx_cmd = \
-        "{library} {env_variables} numactl --preferred {numa_node} {_bin} -c {conf_file} -p {root} > {log} 2>&1".format(
-            library=library, env_variables=env_variables,
-            numa_node=numa_node, _bin=nginx_release_bin,
-            conf_file=nginx_conf_file, root=nginx_root, log=nginx_log
-        )
-    run_cmd_and_wait(cmd=run_nginx_cmd)
+    run_nginx_cmd = ("{library} {env_variables} numactl --preferred {numa_node}"
+                     " {_bin} -c {conf_file} -p {root} > {log} 2>&1")
+    run_nginx_cmd = run_nginx_cmd.format(
+        library=library, env_variables=env_variables,
+        numa_node=numa_node, _bin=nginx_release_bin,
+        conf_file=nginx_conf_file, root=nginx_root, log=nginx_log
+    )
+    run_remote_cmd_get_output(cmd=run_nginx_cmd, host=nginx_server)
 
 
 def add_options(parser):

@@ -20,7 +20,7 @@ def parse_directory(run_type):
         connections_dir = connections_dir_format.format(top_dir=top_dir, connections_dir=connections_dir)
         for files_dir in os.listdir(connections_dir):
             logs_dir = logs_dir_format.format(connections_dir=connections_dir, files_dir=files_dir)
-            result_json = "{logs_dir}/nginx_automation_client_logs/total_results_summary_log_file.json".format(
+            result_json = "{logs_dir}/nginx_automation_logs/total_results_summary_log_file.json".format(
                 logs_dir=logs_dir)
             with open(result_json, 'r') as file:
                 result = json.load(file)
