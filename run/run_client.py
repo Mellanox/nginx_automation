@@ -77,6 +77,7 @@ def run_cleanup():
     """Run cleanup on remote servers."""
     run_cmd_and_wait("rm -rf {dir}".format(dir=all_wrk_logs_dir))
     run_cmd_and_wait("mkdir {dir}".format(dir=all_wrk_logs_dir))
+    run_cmd_and_wait("mkdir -p {dir}".format(dir=script_logs_dir))
 
     # Cleanup server:
     run_remote_cmd(cmd="pkill -9 cpustat", host=nginx_server)
