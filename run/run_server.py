@@ -23,10 +23,11 @@ nginx_debug_bin = "{tools}/nginx/sbin/nginx_debug".format(tools=tools)
 nginx_conf_file = "{tools}/nginx/conf/vma_nginx.conf".format(tools=tools)
 vma_log_file = "{my_home}/temp/vma_log.txt".format(my_home=my_home)
 vma_library = "{dev_vma}/src/vma/.libs/libvma.so".format(dev_vma=dev_vma)
+vma_library_ref = "{my_home}/tasks/task_182/libvma.so.198.9.5_master".format(my_home=my_home)
 nginx_pid_file = "{nginx_root}/logs/nginx.pid".format(nginx_root=nginx_root)
 numa_node = 0
 nginx_server = "rapid01.lab.mtl.com"
-run_types = ["kernel", "vma"]
+run_types = ["kernel", "vma", "vma_ref"]
 vma_parameters = [
     "VMA_TX_SEGS_TCP=2000000",
     "VMA_RX_WRE=32000",
@@ -36,6 +37,8 @@ vma_parameters = [
     "VMA_CQ_POLL_BATCH_MAX=128",
     "VMA_TCP_SEND_BUFFER_SIZE=20000000",
 ]
+vma_parameters_ref = []
+
 
 
 def signal_handler(sig, frame):
@@ -61,20 +64,24 @@ def run_cleanup():
 
 def init():
     """Initialize script."""
-    global vma_parameters
+    global vma_parameters, vma_parameters_ref
     get_workers_cmd = "cat {nginx_conf_file} | grep worker_processes | head -n 1".format(
         nginx_conf_file=nginx_conf_file)
     output = run_cmd_get_output(get_workers_cmd)
     num_of_nginx_workers = output.split()[1].replace(";", "")
     vma_nginx_workers_num = "VMA_NGINX_WORKERS_NUM={num}".format(num=num_of_nginx_workers)
     vma_parameters.append(vma_nginx_workers_num)
+    vma_parameters_ref.append(vma_nginx_workers_num)
 
 
-def run_nginx(library):
+def run_nginx(run_type):
     """Run Nginx application."""
     init()
 
-    if "vma" in library:
+    if "vma_ref" in run_type:
+        library = "LD_PRELOAD={library}".format(library=vma_library_ref)
+        env_variables = " ".join(vma_parameters_ref)
+    elif "vma" in run_type:
         library = "LD_PRELOAD={library}".format(library=vma_library)
         env_variables = " ".join(vma_parameters)
     else:

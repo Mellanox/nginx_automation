@@ -21,7 +21,7 @@ run_client_cmd = "{my_home}/tools/nginx/scripts/run/run_client.py".format(my_hom
 parse_results_cmd = "{my_home}/tools/nginx/scripts/run/parse_results.py".format(my_home=my_home)
 commands_log = "{my_home}/temp/nginx_automation_commands_log.txt".format(my_home=my_home)
 
-# run_type_list=["kernel", "vma"]
+# run_type_list = ["kernel", "vma", "vma_ref"]
 # file_list = ["1KB", "10KB", "100KB", "1MB", "10MB"]
 # connections_list = ["1000", "256000"]
 

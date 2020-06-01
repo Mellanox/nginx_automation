@@ -22,7 +22,7 @@ total_results = dict()
 client_details = dict()
 
 # Durations used in the script:
-test_duration = 100
+test_duration = 120
 cpustat_period = test_duration - 20
 wrk_socket_timeout = 2
 

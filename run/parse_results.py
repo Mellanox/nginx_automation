@@ -76,7 +76,7 @@ def unify_to_one_csv(run_types):
 
 
 def main():
-    """ Run main entry point of the script."""
+    """Run main entry point of the script."""
     run_types = os.listdir(results_dir)
     for run_type in run_types:
         results = parse_directory(run_type)
