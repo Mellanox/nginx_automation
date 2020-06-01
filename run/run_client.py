@@ -19,6 +19,7 @@ from common import *
 server_results = dict()
 client_results = dict()
 total_results = dict()
+client_details = dict()
 
 # Durations used in the script:
 test_duration = 100
@@ -51,12 +52,7 @@ host_username = "simonra"
 nginx_server = "rapid01.lab.mtl.com"
 server_interface = "enp94s0f0"
 wrk_client_machines = ["rapid02.lab.mtl.com", "drock02.swx.labs.mlnx", "drock03.swx.labs.mlnx", "drock04.swx.labs.mlnx"]
-client_details = {
-    "rapid02.lab.mtl.com": {"num_of_clients": 20, "num_of_connections": 3200},
-    "drock02.swx.labs.mlnx": {"num_of_clients": 24, "num_of_connections": 2666},
-    "drock03.swx.labs.mlnx": {"num_of_clients": 24, "num_of_connections": 2666},
-    "drock04.swx.labs.mlnx": {"num_of_clients": 24, "num_of_connections": 2666},
-}
+
 
 ### Helper functions ###
 
@@ -586,8 +582,11 @@ def build_client_details(connections):
 
     connections_per_client_machines = connections / len(wrk_client_machines)
     for client in wrk_client_machines:
-        wrk_connections = math.floor(connections_per_client_machines / client_details[client]["num_of_clients"])
+        client_details[client] = dict()
+        num_of_clients = run_remote_cmd_get_output(cmd="nproc --all", host=client)
+        wrk_connections = math.floor(connections_per_client_machines / int(num_of_clients))
         client_details[client]["num_of_connections"] = int(wrk_connections)
+        client_details[client]["num_of_clients"] = int(num_of_clients)
 
 
 def parse_list_callback(option, opt, value, parser):
