@@ -20,6 +20,8 @@ run_server_cmd = "{my_home}/tools/nginx/scripts/run/run_server.py".format(my_hom
 run_client_cmd = "{my_home}/tools/nginx/scripts/run/run_client.py".format(my_home=my_home)
 parse_results_cmd = "{my_home}/tools/nginx/scripts/run/parse_results.py".format(my_home=my_home)
 commands_log = "{my_home}/temp/nginx_automation_commands_log.txt".format(my_home=my_home)
+sleep_sec = 5
+test_duration = 100
 
 # run_type_list = ["kernel", "vma", "vma_ref"]
 # file_list = ["1KB", "10KB", "100KB", "1MB", "10MB"]
@@ -27,8 +29,8 @@ commands_log = "{my_home}/temp/nginx_automation_commands_log.txt".format(my_home
 
 run_type_list = ["kernel", "vma", "vma_ref"]
 file_list = ["1KB", "10KB", "100KB", "1MB", "10MB"]
-connections_list = ["1000", "2000", "3000", "4000", "5000", "6000", "7000", "8000", "9000", "10000", "20000", "30000", "60000", "120000", "180000", "256000"]
-
+connections_list = ["1000", "2000", "3000", "4000", "5000", "6000", "7000", "8000",
+                    "9000", "10000", "20000", "30000", "60000", "120000", "180000", "256000"]
 
 
 def signal_handler(sig, frame):
@@ -50,7 +52,7 @@ def kill_scripts(do_sleep=True):
         host=nginx_server)
 
     if do_sleep is True:
-        time.sleep(5)
+        time.sleep(sleep_sec)
 
 
 def run_cleanup():
@@ -85,10 +87,10 @@ def run(run_type):
             print ">> Running server..."
             server_cmd = "{cmd} --run_type={run_type}".format(cmd=run_server_cmd, run_type=run_type)
             run_cmd_on_background(cmd=server_cmd)
-            time.sleep(5)
+            time.sleep(sleep_sec)
             print ">> Running client..."
-            client_cmd = "{cmd} --file {file}.bin --connections {connections}".format(
-                cmd=run_client_cmd, file=file, connections=connections)
+            client_cmd = "{cmd} --file {file}.bin --connections {connections} --duration {duration}".format(
+                cmd=run_client_cmd, file=file, connections=connections, duration=test_duration)
             run_cmd_get_output(client_cmd)
             save_logs_cmd = "cp -rf {src} {dst}".format(src=remote_logs_directory, dst=iteration_dir)
             run_cmd_and_wait(save_logs_cmd)
@@ -97,12 +99,28 @@ def run(run_type):
             run_cmd_and_wait("mv {file} {dst}".format(file=commands_log, dst=iteration_dir))
 
 
+def get_run_time():
+    """Return the duration of the total run."""
+    num_of_cases = len(run_type_list) * len(file_list) * len(connections_list)
+    sleep_between_cases = 2 * sleep_sec
+    case_duration_s = sleep_between_cases + test_duration + 3
+    total_duration_s = num_of_cases * case_duration_s
+    total_duration_m = total_duration_s / 60.0
+    total_duration_h = total_duration_m / 60.0
+    return total_duration_s, total_duration_m, total_duration_h
+
+
 def main():
     """Run main entry point of the script."""
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
+
     print "> Running cleanup..."
     run_cleanup()
+
+    duration = "> Test duration estimation time: {0} seconds | {1:.2f} minutes | {2:.2f} hours".format(*get_run_time())
+    print duration
+
     for run_type in run_type_list:
         print "> Running {run_type} run...".format(run_type=run_type)
         run(run_type)

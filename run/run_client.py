@@ -596,21 +596,21 @@ def parse_list_callback(option, opt, value, parser):
 
 def add_options(parser):
     """Add options to the parser."""
-    parser.add_option('-f', '--file', dest='server_file', default=None, type='string',
+    parser.add_option('-f', '--file', dest='server_file', default=server_file, type='string',
                       help="File to get from server", metavar='<ARG>')
     parser.add_option('-c', '--connections', dest='connections', default=None, type='int',
                       help="The total number of connections to open", metavar='<ARG>')
-    parser.add_option('-d', '--duration', dest='duration', default=None, type='int',
+    parser.add_option('-d', '--duration', dest='duration', default=test_duration, type='int',
                       help="The duration in seconds of each test case", metavar='<ARG>')
 
 
 def set_custom_variables(options):
     """Set custom variables for the script options."""
-    global server_file, url
+    global server_file, url, test_duration
 
-    if options.server_file is not None:
-        server_file = options.server_file
-        url = "{server_url}/{file}".format(server_url=server_url, file=server_file)
+    server_file = options.server_file
+    url = "{server_url}/{file}".format(server_url=server_url, file=server_file)
+    test_duration = options.duration
 
 
 def main():
