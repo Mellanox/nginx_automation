@@ -25,9 +25,10 @@ commands_log = "{my_home}/temp/nginx_automation_commands_log.txt".format(my_home
 # file_list = ["1KB", "10KB", "100KB", "1MB", "10MB"]
 # connections_list = ["1000", "256000"]
 
-run_type_list = ["vma"]
-file_list = ["10MB"]
-connections_list = ["256000"]
+run_type_list = ["kernel", "vma", "vma_ref"]
+file_list = ["1KB", "10KB", "100KB", "1MB", "10MB"]
+connections_list = ["1000", "2000", "3000", "4000", "5000", "6000", "7000", "8000", "9000", "10000", "20000", "30000", "60000", "120000", "180000", "256000"]
+
 
 
 def signal_handler(sig, frame):
