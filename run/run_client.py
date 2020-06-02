@@ -128,6 +128,7 @@ def build_result_structures():
     total_results = {
         "test_details": {
             "nginx_server": "",
+            "nginx_workers": 0,
             "num_of_client_machines": "",
             "client_machines": "",
             "total_amount_of_connections": 0,
@@ -479,8 +480,13 @@ def calculate_results(options):
 
 def print_results(options):
     """Print results summary."""
+    get_workers_cmd = "cat {config_file} | grep worker_processes | head -n 1".format(
+        config_file=config[Keys.SERVER][Keys.NGINX_CONF])
+    output = run_cmd_get_output(get_workers_cmd)
+    num_of_nginx_workers = output.split()[1].replace(";", "")
     log("{:*^80}\n".format(" Test Parameters "))
     log("--- Nginx server: {server}".format(server=config[Keys.SERVER][Keys.NGINX_SERVER]))
+    log("--- Number of workers: {workers}".format(workers=num_of_nginx_workers))
     log("--- Number of client machines: {clients}".format(clients=len(config[Keys.CLIENT][Keys.WRK_SERVERS])))
     log("--- Client machines: {clients_list}".format(clients_list=str(config[Keys.CLIENT][Keys.WRK_SERVERS])))
     log("--- Total amount of connections: {connections}".format(connections=options.connections))
@@ -543,6 +549,7 @@ def print_results(options):
     log("{:=^50}".format(""))
 
     total_results["test_details"]["nginx_server"] = config[Keys.SERVER][Keys.NGINX_SERVER]
+    total_results["test_details"]["nginx_workers"] = num_of_nginx_workers
     total_results["test_details"]["num_of_client_machines"] = len(config[Keys.CLIENT][Keys.WRK_SERVERS])
     total_results["test_details"]["client_machines"] = str(config[Keys.CLIENT][Keys.WRK_SERVERS])
     total_results["test_details"]["total_amount_of_connections"] = options.connections

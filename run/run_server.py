@@ -33,8 +33,11 @@ def run_cleanup():
     run_remote_cmd_get_output(cmd=clean_cpustat_cmd, host=config[Keys.SERVER][Keys.NGINX_SERVER])
 
 
-def init():
+def init(options):
     """Initialize script."""
+    update_workers_cmd = "sed \"s/worker_processes.*/worker_processes {workers};/g\" -i {config_file}".format(
+        workers=options.workers, config_file=config[Keys.SERVER][Keys.NGINX_CONF])
+    run_cmd_get_output(update_workers_cmd)
     get_workers_cmd = "cat {config_file} | grep worker_processes | head -n 1".format(
         config_file=config[Keys.SERVER][Keys.NGINX_CONF])
     output = run_cmd_get_output(get_workers_cmd)
@@ -44,14 +47,14 @@ def init():
     config[Keys.SERVER][Keys.VMA_REF_PARAMS].append(vma_nginx_workers_num)
 
 
-def run_nginx(run_type):
+def run_nginx(options):
     """Run Nginx application."""
-    init()
+    init(options)
 
-    if "vma_ref" in run_type:
+    if "vma_ref" in options.run_type:
         library = "LD_PRELOAD={library}".format(library=config[Keys.SERVER][Keys.VMA_REF_LIB])
         env_variables = " ".join(config[Keys.SERVER][Keys.VMA_REF_PARAMS])
-    elif "vma" in run_type:
+    elif "vma" in options.run_type:
         library = "LD_PRELOAD={library}".format(library=config[Keys.SERVER][Keys.VMA_LIB])
         env_variables = " ".join(config[Keys.SERVER][Keys.VMA_PARAMS])
     else:
@@ -74,7 +77,8 @@ def add_options(parser):
                       dest='run_type', default="vma",
                       help="Type of the run to do, valid options are: {choices}. Default: {default}".format(
                           choices=supported_run_types, default="vma"), metavar='<ARG>')
-
+    parser.add_option('-w', '--workers', dest='workers', type='int',
+                      help="Number of Nginx workers", metavar='<ARG>')
 
 def main():
     """Run main entry point of the script."""
@@ -89,7 +93,7 @@ def main():
     run_cleanup()
 
     print "> Running Nginx - Run type: {run_type}...".format(run_type=options.run_type)
-    run_nginx(options.run_type)
+    run_nginx(options)
 
 
 if __name__ == "__main__":

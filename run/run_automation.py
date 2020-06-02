@@ -56,38 +56,50 @@ def run(run_type):
     run_dir = "{res_dir}/{run_type}".format(res_dir=config[Keys.GENERAL][Keys.RES_DIR], run_type=run_type)
     os.makedirs(run_dir)
 
-    for connections in config[Keys.TEST_PARAMS][Keys.CONNECTIONS]:
-        connections_dir = "{run_dir}/connections_{connections}".format(run_dir=run_dir, connections=connections)
-        os.makedirs(connections_dir)
+    for workers in config[Keys.TEST_PARAMS][Keys.NGINX_WORKERS]:
+        workers_dir = "{run_dir}/workers_{workers}".format(run_dir=run_dir, workers=workers)
+        os.makedirs(workers_dir)
 
-        for file in config[Keys.TEST_PARAMS][Keys.FILES]:
-            print ">> Running case - Connections: {connections} | File: {file}".format(
-                file=file, connections=connections)
-            iteration_dir = "{connections_dir}/file_{file}".format(connections_dir=connections_dir, file=file)
-            os.makedirs(iteration_dir)
-            kill_scripts()
+        for connections in config[Keys.TEST_PARAMS][Keys.CONNECTIONS]:
+            connections_dir = "{workers_dir}/connections_{connections}".format(
+                workers_dir=workers_dir, connections=connections)
+            os.makedirs(connections_dir)
 
-            print ">> Running server..."
-            run_server_script = "{path}/run_server.py".format(path=os.path.dirname(os.path.abspath(__file__)))
-            server_cmd = "{script} --run_type={run_type}".format(script=run_server_script, run_type=run_type)
-            run_cmd_on_background(cmd=server_cmd)
-            time.sleep(sleep_sec)
+            for file in config[Keys.TEST_PARAMS][Keys.FILES]:
+                print ">> Running case - Workers: {workers} | Connections: {connections} | File: {file}".format(
+                    workers=workers, connections=connections, file=file)
+                iteration_dir = "{connections_dir}/file_{file}".format(connections_dir=connections_dir, file=file)
+                os.makedirs(iteration_dir)
+                kill_scripts()
 
-            print ">> Running client..."
-            run_client_script = "{path}/run_client.py".format(path=os.path.dirname(os.path.abspath(__file__)))
-            client_cmd = "{script} --file {file}.bin --connections {connections} --duration {duration}".format(
-                script=run_client_script, file=file, connections=connections, duration=config[Keys.TEST_PARAMS][Keys.DURATION])
-            run_cmd_get_output(client_cmd)
+                print ">> Running server..."
+                run_server_script = "{path}/run_server.py".format(path=os.path.dirname(os.path.abspath(__file__)))
+                server_cmd = "{script} --run_type={run_type} --workers={workers}".format(
+                    script=run_server_script, run_type=run_type, workers=workers)
+                run_cmd_on_background(cmd=server_cmd)
+                time.sleep(sleep_sec)
 
-            save_logs_cmd = "cp -rf {src} {dst}".format(
-                src=config[Keys.GENERAL][Keys.REMOTE_LOGS_DIR], dst=iteration_dir)
-            run_cmd_and_wait(save_logs_cmd)
-            run_cmd_and_wait("mv {file} {dst}".format(file=config[Keys.GENERAL][Keys.CMD_LOG_FILE], dst=iteration_dir))
+                print ">> Running client..."
+                run_client_script = "{path}/run_client.py".format(path=os.path.dirname(os.path.abspath(__file__)))
+                client_cmd = "{script} --file {file}.bin --connections {connections} --duration {duration}".format(
+                    script=run_client_script, file=file, connections=connections, duration=config[Keys.TEST_PARAMS][Keys.DURATION])
+                run_cmd_get_output(client_cmd)
+
+                save_automation_config_cmd = "cp -f {file} {dst}".format(
+                    file=config[Keys.SERVER][Keys.NGINX_CONF], dst=config[Keys.GENERAL][Keys.REMOTE_LOGS_DIR])
+                run_cmd_and_wait(save_automation_config_cmd)
+                save_commands_log_cmd = "mv {file} {dst}".format(
+                    file=config[Keys.GENERAL][Keys.CMD_LOG_FILE], dst=iteration_dir)
+                run_cmd_and_wait(save_commands_log_cmd)
+                save_logs_cmd = "cp -rf {file} {dst}".format(
+                    file=config[Keys.GENERAL][Keys.REMOTE_LOGS_DIR], dst=iteration_dir)
+                run_cmd_and_wait(save_logs_cmd)
 
 
 def get_total_cases_num():
     """Return total number of cases."""
     return (len(config[Keys.TEST_PARAMS][Keys.RUN_TYPES]) *
+            len(config[Keys.TEST_PARAMS][Keys.NGINX_WORKERS]) *
             len(config[Keys.TEST_PARAMS][Keys.FILES]) *
             len(config[Keys.TEST_PARAMS][Keys.CONNECTIONS]))
 

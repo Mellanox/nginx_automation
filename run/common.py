@@ -43,7 +43,7 @@ class Keys(object):
     CPUSTAT_BIN = "cpustat_bin"
     WRK_BIN = "wrk_bin"
     WRK_SERVERS = "wrk_servers"
-
+    NGINX_WORKERS = "nginx_workers"
 
 def get_config():
     """Return automation configuration structure."""

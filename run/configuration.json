@@ -18,7 +18,7 @@
         "vma_library": "/auto/mtrswgwork/simonra/dev/libvma/src/vma/.libs/libvma.so",
         "vma_library_ref": "/auto/mtrswgwork/simonra/tasks/task_182/libvma.so.198.9.5_master",
         "vma_parameters": [
-            "VMA_TX_SEGS_TCP=2000000",
+            "VMA_TX_SEGS_TCP=4000000",
             "VMA_RX_WRE=32000",
             "VMA_TX_BUFS=1000000",
             "VMA_TX_BUF_SIZE=1500",
@@ -38,18 +38,34 @@
         ]
     },
     "test_parameters_section": {
-        "duration": 120,
+        "duration": 90,
         "run_types": [
             "kernel",
             "vma_ref",
             "vma"
         ],
+        "nginx_workers": [
+            "1",
+            "4",
+            "8",
+            "16",
+            "20"
+        ],
         "files": [
             "1KB",
+            "10KB",
+            "100KB",
+            "1MB",
             "10MB"
         ],
         "connections": [
             "1000",
+            "5000",
+            "10000",
+            "30000",
+            "60000",
+            "120000",
+            "180000",
             "256000"
         ]
     }

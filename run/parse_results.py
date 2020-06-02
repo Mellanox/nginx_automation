@@ -8,25 +8,29 @@ from common import *
 output_file = "{res_dir}/{run_type}_nginx_automation_parsed_results.csv"
 unified_output_file = "{res_dir}/unified_nginx_automation_parsed_results.csv".format(
     res_dir=config[Keys.GENERAL][Keys.RES_DIR])
-csv_header = "File,Connections,Throughput[Gbps],Requests[RPS],Concurrent Connections,CPU[%],CPU/Gbps[%],CPU/RPS[%]\n"
-csv_line = "{file_size},{connections},{throughput},{requests},{concurrent_connections},{cpu},{cpu_gbps},{cpu_rps}\n"
+csv_header = "Workers,File,Connections,Throughput[Gbps],Requests[RPS],Concurrent Connections,CPU[%],CPU/Gbps[%],CPU/RPS[%]\n"
+csv_line = "{workers},{file_size},{connections},{throughput},{requests},{concurrent_connections},{cpu},{cpu_gbps},{cpu_rps}\n"
 
 
 def parse_directory(run_type):
     """Parse VMA/kernel directory."""
     top_dir = "{res_dir}/{run_type}".format(res_dir=config[Keys.GENERAL][Keys.RES_DIR], run_type=run_type)
-    connections_dir_format = "{top_dir}/{connections_dir}"
+    workers_dir_format = "{top_dir}/{workers_dir}"
+    connections_dir_format = "{workers_dir}/{connections_dir}"
     logs_dir_format = "{connections_dir}/{files_dir}"
     results = list()
-    for connections_dir in os.listdir(top_dir):
-        connections_dir = connections_dir_format.format(top_dir=top_dir, connections_dir=connections_dir)
-        for files_dir in os.listdir(connections_dir):
-            logs_dir = logs_dir_format.format(connections_dir=connections_dir, files_dir=files_dir)
-            result_json = "{logs_dir}/nginx_automation_logs/total_results_summary_log_file.json".format(
-                logs_dir=logs_dir)
-            with open(result_json, 'r') as file:
-                result = json.load(file)
-                results.append(result)
+
+    for workers_dir in os.listdir(top_dir):
+        workers_dir = workers_dir_format.format(top_dir=top_dir, workers_dir=workers_dir)
+        for connections_dir in os.listdir(workers_dir):
+            connections_dir = connections_dir_format.format(workers_dir=workers_dir, connections_dir=connections_dir)
+            for files_dir in os.listdir(connections_dir):
+                logs_dir = logs_dir_format.format(connections_dir=connections_dir, files_dir=files_dir)
+                result_json = "{logs_dir}/nginx_automation_logs/total_results_summary_log_file.json".format(
+                    logs_dir=logs_dir)
+                with open(result_json, 'r') as file:
+                    result = json.load(file)
+                    results.append(result)
 
     return results
 
@@ -41,6 +45,7 @@ def convert_results_to_csv(run_type, results):
         file.write(csv_header)
         for result in results:
             line = csv_line.format(
+                workers=result["test_details"]["nginx_workers"],
                 file_size=result["test_details"]["file"][:-4],
                 connections=result["test_details"]["total_amount_of_connections"],
                 throughput=result["results"]["throughput"],
@@ -58,7 +63,7 @@ def convert_results_to_csv(run_type, results):
 def unify_to_one_csv(run_types):
     """Unify CSV files to one file."""
     unified_file_list = list()
-    table_column_width = "," * 7
+    table_column_width = "," * 8
     for run_type in run_types:
         csv_file = output_file.format(res_dir=config[Keys.GENERAL][Keys.RES_DIR], run_type=run_type)
         current_file_list = list()
