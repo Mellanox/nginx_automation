@@ -1,0 +1,56 @@
+{
+    "general_section": {
+        "ssh_username": "simonra",
+        "commands_log_file": "/auto/mtrswgwork/simonra/temp/nginx_automation_commands_log.txt",
+        "results_directory": "/auto/mtrswgwork/simonra/temp/nginx_automation_results",
+        "remote_logs_directory": "/auto/mtrswgwork/simonra/temp/nginx_automation_logs"
+    },
+    "server_section": {
+        "nginx_server": "rapid01.lab.mtl.com",
+        "nginx_ip": "1.1.62.27",
+        "nginx_port": "8080",
+        "nic_numa_node": 0,
+        "interface": "enp94s0f0",
+        "nginx_root": "/auto/mtrswgwork/simonra/tools/nginx",
+        "nginx_bin": "/auto/mtrswgwork/simonra/tools/nginx/sbin/nginx_release",
+        "nginx_conf_file": "/auto/mtrswgwork/simonra/tools/nginx/conf/vma_nginx.conf",
+        "cpustat_bin": "/auto/mtrswgwork/simonra/tools/cpustat/cpustat",
+        "vma_library": "/auto/mtrswgwork/simonra/dev/libvma/src/vma/.libs/libvma.so",
+        "vma_library_ref": "/auto/mtrswgwork/simonra/tasks/task_182/libvma.so.198.9.5_master",
+        "vma_parameters": [
+            "VMA_TX_SEGS_TCP=2000000",
+            "VMA_RX_WRE=32000",
+            "VMA_TX_BUFS=1000000",
+            "VMA_TX_BUF_SIZE=1500",
+            "VMA_TSO_SEGMENT_SIZE=32768",
+            "VMA_CQ_POLL_BATCH_MAX=128",
+            "VMA_TCP_SEND_BUFFER_SIZE=20000000"
+        ],
+        "vma_parameters_ref": []
+    },
+    "client_section": {
+        "wrk_bin": "/auto/mtrswgwork/simonra/dev/wrk/wrk",
+        "wrk_servers": [
+            "rapid02.lab.mtl.com",
+            "drock02.swx.labs.mlnx",
+            "drock03.swx.labs.mlnx",
+            "drock04.swx.labs.mlnx"
+        ]
+    },
+    "test_parameters_section": {
+        "duration": 120,
+        "run_types": [
+            "kernel",
+            "vma_ref",
+            "vma"
+        ],
+        "files": [
+            "1KB",
+            "10MB"
+        ],
+        "connections": [
+            "1000",
+            "256000"
+        ]
+    }
+}

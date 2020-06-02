@@ -3,16 +3,18 @@
 import os
 import json
 
-results_dir = "/auto/mtrswgwork/simonra/temp/nginx_automation_results"
-output_file = "{results_dir}/{run_type}_nginx_automation_parsed_results.csv"
-unified_output_file = "{results_dir}/unified_nginx_automation_parsed_results.csv".format(results_dir=results_dir)
+from common import *
+
+output_file = "{res_dir}/{run_type}_nginx_automation_parsed_results.csv"
+unified_output_file = "{res_dir}/unified_nginx_automation_parsed_results.csv".format(
+    res_dir=config[Keys.GENERAL][Keys.RES_DIR])
 csv_header = "File,Connections,Throughput[Gbps],Requests[RPS],Concurrent Connections,CPU[%],CPU/Gbps[%],CPU/RPS[%]\n"
 csv_line = "{file_size},{connections},{throughput},{requests},{concurrent_connections},{cpu},{cpu_gbps},{cpu_rps}\n"
 
 
 def parse_directory(run_type):
     """Parse VMA/kernel directory."""
-    top_dir = "{results_dir}/{run_type}".format(results_dir=results_dir, run_type=run_type)
+    top_dir = "{res_dir}/{run_type}".format(res_dir=config[Keys.GENERAL][Keys.RES_DIR], run_type=run_type)
     connections_dir_format = "{top_dir}/{connections_dir}"
     logs_dir_format = "{connections_dir}/{files_dir}"
     results = list()
@@ -31,7 +33,7 @@ def parse_directory(run_type):
 
 def convert_results_to_csv(run_type, results):
     """Convert results objects list to CSV file."""
-    output_csv_file = output_file.format(results_dir=results_dir, run_type=run_type)
+    output_csv_file = output_file.format(res_dir=config[Keys.GENERAL][Keys.RES_DIR], run_type=run_type)
     if os.path.exists(output_csv_file) is True:
         os.remove(output_csv_file)
 
@@ -56,9 +58,11 @@ def convert_results_to_csv(run_type, results):
 def unify_to_one_csv(run_types):
     """Unify CSV files to one file."""
     unified_file_list = list()
+    table_column_width = "," * 7
     for run_type in run_types:
-        csv_file = output_file.format(results_dir=results_dir, run_type=run_type)
+        csv_file = output_file.format(res_dir=config[Keys.GENERAL][Keys.RES_DIR], run_type=run_type)
         current_file_list = list()
+        current_file_list.append(run_type + table_column_width)
         with open(csv_file, 'r') as file:
             for line in file:
                 current_file_list.append(line.replace("\n", ""))
@@ -77,11 +81,10 @@ def unify_to_one_csv(run_types):
 
 def main():
     """Run main entry point of the script."""
-    run_types = os.listdir(results_dir)
-    for run_type in run_types:
+    for run_type in config[Keys.TEST_PARAMS][Keys.RUN_TYPES]:
         results = parse_directory(run_type)
         convert_results_to_csv(run_type=run_type, results=results)
-    unify_to_one_csv(run_types=run_types)
+    unify_to_one_csv(run_types=config[Keys.TEST_PARAMS][Keys.RUN_TYPES])
 
 
 if __name__ == "__main__":

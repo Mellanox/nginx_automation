@@ -22,36 +22,25 @@ total_results = dict()
 client_details = dict()
 
 # Durations used in the script:
-test_duration = 100
-cpustat_period = test_duration - 20
 wrk_socket_timeout = 2
 
 # Log files:
-home_dir = "/auto/mtrswgwork/simonra"
 wrk_output_file = "/tmp/wrk_out.log"
 wrk_log_dir = "/tmp/wrk_logs"
-script_logs_dir = "{home_dir}/temp/nginx_automation_logs".format(home_dir=home_dir)
-script_output_log_file = "{dir}/{name}".format(dir=script_logs_dir, name="wrk_client_script_stdout.txt")
-server_results_log_file = "{dir}/{name}".format(dir=script_logs_dir, name="server_results_log_file.json")
-client_results_log_file = "{dir}/{name}".format(dir=script_logs_dir, name="client_results_log_file.json")
-total_results_summary_log_file = "{dir}/{name}".format(dir=script_logs_dir, name="total_results_summary_log_file.json")
 all_wrk_logs_dir = "/tmp/all_wrk_logs_dir"
 cpustat_log_file = "/tmp/cpustat_log.txt"
-
-# Binaries:
-wrk_bin = "{home_dir}/{wrk_path}".format(home_dir=home_dir, wrk_path="dev/wrk/wrk")
-cpustat_bin = "{home_dir}/{cpustat_path}".format(home_dir=home_dir, cpustat_path="tools/cpustat/cpustat")
+script_output_log_file = "{dir}/{name}".format(
+    dir=config[Keys.GENERAL][Keys.REMOTE_LOGS_DIR], name="wrk_client_script_stdout.txt")
+server_results_log_file = "{dir}/{name}".format(
+    dir=config[Keys.GENERAL][Keys.REMOTE_LOGS_DIR], name="server_results_log_file.json")
+client_results_log_file = "{dir}/{name}".format(
+    dir=config[Keys.GENERAL][Keys.REMOTE_LOGS_DIR], name="client_results_log_file.json")
+total_results_summary_log_file = "{dir}/{name}".format(
+    dir=config[Keys.GENERAL][Keys.REMOTE_LOGS_DIR], name="total_results_summary_log_file.json")
 
 # Setup details:
-dest_ip = "1.1.62.27"
-dest_port = "8080"
-server_file = "10MB.bin"
-server_url = "http://{ip}:{port}".format(ip=dest_ip, port=dest_port)
-url = "{server_url}/{file}".format(server_url=server_url, file=server_file)
-host_username = "simonra"
-nginx_server = "rapid01.lab.mtl.com"
-server_interface = "enp94s0f0"
-wrk_client_machines = ["rapid02.lab.mtl.com", "drock02.swx.labs.mlnx", "drock03.swx.labs.mlnx", "drock04.swx.labs.mlnx"]
+server_url = "http://{ip}:{port}".format(
+    ip=config[Keys.SERVER][Keys.NGINX_IP], port=config[Keys.SERVER][Keys.NGINX_PORT])
 
 
 ### Helper functions ###
@@ -72,14 +61,15 @@ def log(line):
 def run_cleanup():
     """Run cleanup on remote servers."""
     run_cmd_and_wait("rm -rf {dir}".format(dir=all_wrk_logs_dir))
+    run_cmd_and_wait("rm -f {file}".format(file=script_output_log_file))
     run_cmd_and_wait("mkdir {dir}".format(dir=all_wrk_logs_dir))
-    run_cmd_and_wait("mkdir -p {dir}".format(dir=script_logs_dir))
+    run_cmd_and_wait("mkdir -p {dir}".format(dir=config[Keys.GENERAL][Keys.REMOTE_LOGS_DIR]))
 
     # Cleanup server:
-    run_remote_cmd(cmd="pkill -9 cpustat", host=nginx_server)
+    run_remote_cmd(cmd="pkill -9 cpustat", host=config[Keys.SERVER][Keys.NGINX_SERVER])
 
     # Cleanup clients:
-    for client in wrk_client_machines:
+    for client in config[Keys.CLIENT][Keys.WRK_SERVERS]:
         run_remote_cmd_get_output(cmd="pkill -9 wrk", host=client)
         run_remote_cmd_get_output(cmd="rm -rf {wrk_log_dir}".format(wrk_log_dir=wrk_log_dir), host=client)
         run_remote_cmd_get_output(cmd="rm -f {wrk_output_file}".format(wrk_output_file=wrk_output_file), host=client)
@@ -117,7 +107,7 @@ def build_result_structures():
         "clients": {}
     }
 
-    for client in wrk_client_machines:
+    for client in config[Keys.CLIENT][Keys.WRK_SERVERS]:
         client_results["clients"][client] = {
             "results": {
                 "bw": {"result": [], "str": []},
@@ -161,27 +151,29 @@ def build_result_structures():
     }
 
 
-def collect_metrics_before_test():
+def collect_metrics_before_test(options):
     """Metric collection before the test steps."""
     # Get number of connections from Nginx before the test:
     get_server_connection_cmd = "curl -s {server_url}/stub_status | tail -2 | head -1".format(
         server_url=server_url)
-    output = run_remote_cmd_get_output(cmd=get_server_connection_cmd, host=nginx_server)
+    output = run_remote_cmd_get_output(cmd=get_server_connection_cmd, host=config[Keys.SERVER][Keys.NGINX_SERVER])
     server_results["connections_num_before"] = int(output.replace("\n", "").split()[1])
 
     # Run CPU utilization sampling on server:
+    cpustat_period = options.duration - 20
     cpu_util_cmd = "nohup {_bin} -s -w 10 -i {duration} -d -o {log}".format(
-        _bin=cpustat_bin, duration=cpustat_period, log=cpustat_log_file)
-    run_remote_cmd_on_backround(cmd=cpu_util_cmd, host=nginx_server)
+        _bin=config[Keys.SERVER][Keys.CPUSTAT_BIN], duration=cpustat_period, log=cpustat_log_file)
+    run_remote_cmd_on_backround(cmd=cpu_util_cmd, host=config[Keys.SERVER][Keys.NGINX_SERVER])
 
     # Get number of VMA IRQs statistics before the test:
-    get_vma_irqs_cmd = "cat /proc/interrupts | grep \"{interface}-0\"".format(interface=server_interface)
-    output = run_remote_cmd_get_output(cmd=get_vma_irqs_cmd, host=nginx_server)
+    get_vma_irqs_cmd = "cat /proc/interrupts | grep \"{interface}-0\"".format(
+        interface=config[Keys.SERVER][Keys.INTERFACE])
+    output = run_remote_cmd_get_output(cmd=get_vma_irqs_cmd, host=config[Keys.SERVER][Keys.NGINX_SERVER])
     server_results["num_of_vma_irqs_before"] = int(output.split()[1])
 
     ### Get client metrics before the test ###
 
-    for client in wrk_client_machines:
+    for client in config[Keys.CLIENT][Keys.WRK_SERVERS]:
         # Get SYN TCP retransmit statistics before the test:
         get_tcp_syn_retransmit_cmd = "netstat -s | grep TCPSynRetrans"
         output = run_remote_cmd_get_output(cmd=get_tcp_syn_retransmit_cmd, host=client)
@@ -192,18 +184,18 @@ def collect_metrics_before_test():
         client_results["clients"][client]["metrics"]["tcp_syn_retransmit_before"] = int(output)
 
 
-def collect_metrics_after_test():
+def collect_metrics_after_test(options):
     """Metric collection after the test steps."""
     # Get CPU utilization sampling from server log:
     get_cpu_usage_cmd = "grep -Po '^Average: total=\K[0-9.]+' {log}".format(log=cpustat_log_file)
-    output = run_remote_cmd_get_output(cmd=get_cpu_usage_cmd, host=nginx_server)
+    output = run_remote_cmd_get_output(cmd=get_cpu_usage_cmd, host=config[Keys.SERVER][Keys.NGINX_SERVER])
     if output.replace(" ", "") is not "":
         server_results["cpu_utilization"] = float(output)
 
     # Get number of connections from Nginx after the test:
     get_server_connection_cmd = \
         "curl -s {server_url}/stub_status | tail -2 | head -1".format(server_url=server_url)
-    output = run_remote_cmd_get_output(cmd=get_server_connection_cmd, host=nginx_server)
+    output = run_remote_cmd_get_output(cmd=get_server_connection_cmd, host=config[Keys.SERVER][Keys.NGINX_SERVER])
     if output.replace(" ", "") is not "":
         server_results["connections_num_after"] = int(output.replace("\n", "").split()[1])
 
@@ -213,8 +205,8 @@ def collect_metrics_after_test():
 
     # Get number of VMA IRQs statistics after the test:
     get_vma_irqs_cmd = "cat /proc/interrupts | grep \"{interface}-0\"".format(
-        interface=server_interface)
-    output = run_remote_cmd_get_output(cmd=get_vma_irqs_cmd, host=nginx_server)
+        interface=config[Keys.SERVER][Keys.INTERFACE])
+    output = run_remote_cmd_get_output(cmd=get_vma_irqs_cmd, host=config[Keys.SERVER][Keys.NGINX_SERVER])
     server_results["num_of_vma_irqs_after"] = int(output.split()[1])
 
     # Get total number of connections during the test:
@@ -223,7 +215,7 @@ def collect_metrics_after_test():
 
     ### Get client metrics after the test ###
 
-    for client in wrk_client_machines:
+    for client in config[Keys.CLIENT][Keys.WRK_SERVERS]:
         # Get SYN TCP retransmit statistics after the test:
         get_tcp_syn_retransmit_cmd = "netstat -s | grep TCPSynRetrans"
         output = run_remote_cmd_get_output(cmd=get_tcp_syn_retransmit_cmd, host=client)
@@ -239,38 +231,39 @@ def collect_metrics_after_test():
         client_results["total"]["metrics"]["tcp_syn_retransmit"] += tcp_syn_retransmit_total
 
 
-def run_the_test():
+def run_the_test(options):
     """Run the test on remote setups."""
     wrk_command_format = ("taskset -c {core} {_bin} -t 1 --latency -c {connections} -d {duration}s "
                           "--timeout {socket_timeout}s {url} >> {wrk_log_dir}/wrk_{host}_{_id} & ")
     # Build client commands:
     client_commands = dict()
     client_id = 1
-    for client_name in wrk_client_machines:
+    for client_name in config[Keys.CLIENT][Keys.WRK_SERVERS]:
         # Build current client command:
         client = client_details[client_name]
         cmd = ""
         core = 0
         for wrk_index in range(1, client["num_of_clients"] + 1):
+            url = "{server_url}/{file}".format(server_url=server_url, file=options.server_file)
             cmd += wrk_command_format.format(
-                core=core, _bin=wrk_bin, connections=client["num_of_connections"],
-                duration=test_duration, socket_timeout=wrk_socket_timeout,
+                core=core, _bin=config[Keys.CLIENT][Keys.WRK_BIN], connections=client["num_of_connections"],
+                duration=options.duration, socket_timeout=wrk_socket_timeout,
                 url=url, wrk_log_dir=wrk_log_dir, host=client_name, _id=client_id)
             client_id += 1
             core += 1
         client_commands[client_name] = "{cmd}".format(cmd=cmd)
 
     # Run the different client servers:
-    for client_name in wrk_client_machines:
+    for client_name in config[Keys.CLIENT][Keys.WRK_SERVERS]:
         run_remote_cmd_on_backround(cmd=client_commands[client_name], host=client_name)
 
-    time.sleep(test_duration)
+    time.sleep(options.duration)
 
     wrk_status_cmd = "pgrep wrk | wc -l"
     kill_counter = 1
     while True:
         done = True
-        for client_name in wrk_client_machines:
+        for client_name in config[Keys.CLIENT][Keys.WRK_SERVERS]:
             output = run_remote_cmd_get_output(cmd=wrk_status_cmd, host=client_name)
             num_of_wrks = int(output)
             if num_of_wrks != 0:
@@ -283,7 +276,7 @@ def run_the_test():
             break
 
     if kill_counter == 0:
-        for client_name in wrk_client_machines:
+        for client_name in config[Keys.CLIENT][Keys.WRK_SERVERS]:
             run_remote_cmd(cmd="pkill -2 wrk", host=client_name)
         time.sleep(1)
 
@@ -386,12 +379,12 @@ def get_sent_requests_result(line):
     return (sent_requests_result_str, sent_requests_result)
 
 
-def calculate_results():
+def calculate_results(options):
     """Calculate test result and print them."""
     # Get log files from remote hosts:
     host_logs = list()
     cmd_pids = list()
-    for client_name in wrk_client_machines:
+    for client_name in config[Keys.CLIENT][Keys.WRK_SERVERS]:
         get_logs_list_cmd = "ls {dir_}/* | sort -V".format(dir_=wrk_log_dir)
         logs_list = run_remote_cmd_get_output(cmd=get_logs_list_cmd, host=client_name).split("\n")
 
@@ -400,7 +393,7 @@ def calculate_results():
                 continue
 
             get_log_file_cmd = "scp {user}@{client}:{file} {all_wrk_logs_dir}".format(
-                user=host_username, client=client_name, file=file, all_wrk_logs_dir=all_wrk_logs_dir)
+                user=config[Keys.GENERAL][Keys.USER], client=client_name, file=file, all_wrk_logs_dir=all_wrk_logs_dir)
             pid = run_cmd_on_background(cmd=get_log_file_cmd, stdout=open(os.devnull, 'w'))
             cmd_pids.append(pid)
             worker_id = os.path.basename(file)
@@ -420,7 +413,8 @@ def calculate_results():
         cur_rst = client_results["clients"][client_name]["results"]
         if os.path.isfile(log_file) is False:
             get_log_file_cmd = "scp {user}@{client}:{folder}/{file} {all_wrk_logs_dir}".format(
-                user=host_username, client=client_name, folder=wrk_log_dir, file=log_file.split('/')[-1],
+                user=config[Keys.GENERAL][Keys.USER], client=client_name,
+                folder=wrk_log_dir, file=log_file.split('/')[-1],
                 all_wrk_logs_dir=all_wrk_logs_dir)
             run_cmd_and_wait(cmd=get_log_file_cmd, stdout=open(os.devnull, 'w'))
         with open(log_file, 'r') as wrk_output_file:
@@ -486,12 +480,12 @@ def calculate_results():
 def print_results(options):
     """Print results summary."""
     log("{:*^80}\n".format(" Test Parameters "))
-    log("--- Nginx server: {server}".format(server=nginx_server))
-    log("--- Number of client machines: {clients}".format(clients=len(wrk_client_machines)))
-    log("--- Client machines: {clients_list}".format(clients_list=str(wrk_client_machines)))
+    log("--- Nginx server: {server}".format(server=config[Keys.SERVER][Keys.NGINX_SERVER]))
+    log("--- Number of client machines: {clients}".format(clients=len(config[Keys.CLIENT][Keys.WRK_SERVERS])))
+    log("--- Client machines: {clients_list}".format(clients_list=str(config[Keys.CLIENT][Keys.WRK_SERVERS])))
     log("--- Total amount of connections: {connections}".format(connections=options.connections))
-    log("--- File: {file}".format(file=server_file))
-    log("--- Duration: {duration} seconds".format(duration=test_duration))
+    log("--- File: {file}".format(file=options.server_file))
+    log("--- Duration: {duration} seconds".format(duration=options.duration))
 
     worker_result_format = (
         "Client {id_:<2} --> BW: {bw:<12} | RPS: {rps:<12} | LAT AVG: {lat_avg:<12} |"
@@ -500,7 +494,7 @@ def print_results(options):
     id_counter = 1
     log("\n{:*^80}\n".format(" Clients Results Summary "))
 
-    for client in wrk_client_machines:
+    for client in config[Keys.CLIENT][Keys.WRK_SERVERS]:
         result = client_results["clients"][client]["results"]
         log("------------- Host: {client}\n".format(client=client))
         for wrk_index in range(client_details[client]["num_of_clients"]):
@@ -548,12 +542,12 @@ def print_results(options):
         retrans=client_results["total"]["metrics"]["tcp_syn_retransmit"]))
     log("{:=^50}".format(""))
 
-    total_results["test_details"]["nginx_server"] = nginx_server
-    total_results["test_details"]["num_of_client_machines"] = len(wrk_client_machines)
-    total_results["test_details"]["client_machines"] = str(wrk_client_machines)
+    total_results["test_details"]["nginx_server"] = config[Keys.SERVER][Keys.NGINX_SERVER]
+    total_results["test_details"]["num_of_client_machines"] = len(config[Keys.CLIENT][Keys.WRK_SERVERS])
+    total_results["test_details"]["client_machines"] = str(config[Keys.CLIENT][Keys.WRK_SERVERS])
     total_results["test_details"]["total_amount_of_connections"] = options.connections
-    total_results["test_details"]["file"] = server_file
-    total_results["test_details"]["duration"] = test_duration
+    total_results["test_details"]["file"] = options.server_file
+    total_results["test_details"]["duration"] = options.duration
     total_results["results"]["server_cpu_utilization"] = server_results["cpu_utilization"]
     total_results["results"]["connections"] = server_results["connections_num_total"]
     total_results["results"]["vma_irqs"] = server_results["num_of_vma_irqs_total"]
@@ -576,12 +570,12 @@ def print_results(options):
         json.dump(obj=total_results, fp=file)
 
 
-def build_client_details(connections):
+def build_client_details(options):
     """Build clients details structure."""
     global client_details
 
-    connections_per_client_machines = connections / len(wrk_client_machines)
-    for client in wrk_client_machines:
+    connections_per_client_machines = options.connections / len(config[Keys.CLIENT][Keys.WRK_SERVERS])
+    for client in config[Keys.CLIENT][Keys.WRK_SERVERS]:
         client_details[client] = dict()
         num_of_clients = run_remote_cmd_get_output(cmd="nproc --all", host=client)
         wrk_connections = math.floor(connections_per_client_machines / int(num_of_clients))
@@ -596,21 +590,17 @@ def parse_list_callback(option, opt, value, parser):
 
 def add_options(parser):
     """Add options to the parser."""
-    parser.add_option('-f', '--file', dest='server_file', default=server_file, type='string',
+    parser.add_option('-f', '--file', dest='server_file', type='string',
                       help="File to get from server", metavar='<ARG>')
-    parser.add_option('-c', '--connections', dest='connections', default=None, type='int',
+    parser.add_option('-c', '--connections', dest='connections', type='int',
                       help="The total number of connections to open", metavar='<ARG>')
-    parser.add_option('-d', '--duration', dest='duration', default=test_duration, type='int',
+    parser.add_option('-d', '--duration', dest='duration', type='int',
                       help="The duration in seconds of each test case", metavar='<ARG>')
 
 
 def set_custom_variables(options):
     """Set custom variables for the script options."""
-    global server_file, url, test_duration
-
-    server_file = options.server_file
-    url = "{server_url}/{file}".format(server_url=server_url, file=server_file)
-    test_duration = options.duration
+    pass
 
 
 def main():
@@ -623,25 +613,23 @@ def main():
     (options, args) = parser.parse_args()
     set_custom_variables(options)
 
-    if options.connections is not None:
-        build_client_details(options.connections)
-
+    build_client_details(options)
     build_result_structures()
 
     print "> Running cleanup..."
     run_cleanup()
 
     print "> Running metrics collection before the test..."
-    collect_metrics_before_test()
+    collect_metrics_before_test(options)
 
     print "> Running clients..."
-    run_the_test()
+    run_the_test(options)
 
     print "> Running metrics collection after the test..."
-    collect_metrics_after_test()
+    collect_metrics_after_test(options)
 
     print "> Running results calculation..."
-    calculate_results()
+    calculate_results(options)
     print_results(options)
 
 

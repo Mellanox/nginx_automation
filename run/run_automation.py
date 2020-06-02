@@ -11,26 +11,7 @@ from common import *
 
 
 # Script variables:
-nginx_server = "rapid01.lab.mtl.com"
-user_name = "simonra"
-my_home = "/auto/mtrswgwork/simonra"
-results_directory = "{my_home}/temp/nginx_automation_results".format(my_home=my_home)
-remote_logs_directory = "{my_home}/temp/nginx_automation_logs".format(my_home=my_home)
-run_server_cmd = "{my_home}/tools/nginx/scripts/run/run_server.py".format(my_home=my_home)
-run_client_cmd = "{my_home}/tools/nginx/scripts/run/run_client.py".format(my_home=my_home)
-parse_results_cmd = "{my_home}/tools/nginx/scripts/run/parse_results.py".format(my_home=my_home)
-commands_log = "{my_home}/temp/nginx_automation_commands_log.txt".format(my_home=my_home)
 sleep_sec = 5
-test_duration = 100
-
-# run_type_list = ["kernel", "vma", "vma_ref"]
-# file_list = ["1KB", "10KB", "100KB", "1MB", "10MB"]
-# connections_list = ["1000", "256000"]
-
-run_type_list = ["kernel", "vma", "vma_ref"]
-file_list = ["1KB", "10KB", "100KB", "1MB", "10MB"]
-connections_list = ["1000", "2000", "3000", "4000", "5000", "6000", "7000", "8000",
-                    "9000", "10000", "20000", "30000", "60000", "120000", "180000", "256000"]
 
 
 def signal_handler(sig, frame):
@@ -46,10 +27,10 @@ def kill_scripts(do_sleep=True):
     run_cmd_get_output("ps -ef | grep run_client.py | awk '{print $2}' | xargs sudo kill -2 > /dev/null 2>&1")
     run_remote_cmd(
         cmd="ps -ef | grep cpustat | awk \'\"\'{print $2}\'\"\' | xargs sudo kill -9 > /dev/null 2>&1",
-        host=nginx_server)
+        host=config[Keys.SERVER][Keys.NGINX_SERVER])
     run_remote_cmd(
         cmd="ps -ef | grep nginx | awk \'\"\'{print $2}\'\"\' | xargs sudo kill -9 > /dev/null 2>&1",
-        host=nginx_server)
+        host=config[Keys.SERVER][Keys.NGINX_SERVER])
 
     if do_sleep is True:
         time.sleep(sleep_sec)
@@ -60,50 +41,62 @@ def run_cleanup():
     kill_scripts(do_sleep=False)
     timestamp = str(datetime.datetime.now())
     timestamp = timestamp.replace(" ", "_").replace("-", "_").replace(":", "_").replace(".", "_")
-    last_results_source = results_directory
-    last_results_destination = "{path}_backup_{timestamp}".format(path=results_directory, timestamp=timestamp)
+    last_results_source = config[Keys.GENERAL][Keys.RES_DIR]
+    last_results_destination = "{path}_backup_{timestamp}".format(
+        path=config[Keys.GENERAL][Keys.RES_DIR], timestamp=timestamp)
     if os.path.isdir(last_results_source) is True:
         shutil.move(last_results_source, last_results_destination)
-    os.makedirs(results_directory)
+    os.makedirs(config[Keys.GENERAL][Keys.RES_DIR])
 
 
 def run(run_type):
     """Run single run kernel/VMA/VMA reference."""
-    run_cmd_and_wait("rm -rf {dir}".format(dir=remote_logs_directory))
-    run_cmd_and_wait("mkdir {dir}".format(dir=remote_logs_directory))
-    run_dir = "{results_directory}/{run_type}".format(results_directory=results_directory, run_type=run_type)
+    run_cmd_and_wait("rm -rf {dir}".format(dir=config[Keys.GENERAL][Keys.REMOTE_LOGS_DIR]))
+    run_cmd_and_wait("mkdir {dir}".format(dir=config[Keys.GENERAL][Keys.REMOTE_LOGS_DIR]))
+    run_dir = "{res_dir}/{run_type}".format(res_dir=config[Keys.GENERAL][Keys.RES_DIR], run_type=run_type)
     os.makedirs(run_dir)
 
-    for connections in connections_list:
+    for connections in config[Keys.TEST_PARAMS][Keys.CONNECTIONS]:
         connections_dir = "{run_dir}/connections_{connections}".format(run_dir=run_dir, connections=connections)
         os.makedirs(connections_dir)
 
-        for file in file_list:
+        for file in config[Keys.TEST_PARAMS][Keys.FILES]:
             print ">> Running case - Connections: {connections} | File: {file}".format(
                 file=file, connections=connections)
             iteration_dir = "{connections_dir}/file_{file}".format(connections_dir=connections_dir, file=file)
             os.makedirs(iteration_dir)
             kill_scripts()
+
             print ">> Running server..."
-            server_cmd = "{cmd} --run_type={run_type}".format(cmd=run_server_cmd, run_type=run_type)
+            run_server_script = "{path}/run_server.py".format(path=os.path.dirname(os.path.abspath(__file__)))
+            server_cmd = "{script} --run_type={run_type}".format(script=run_server_script, run_type=run_type)
             run_cmd_on_background(cmd=server_cmd)
             time.sleep(sleep_sec)
+
             print ">> Running client..."
-            client_cmd = "{cmd} --file {file}.bin --connections {connections} --duration {duration}".format(
-                cmd=run_client_cmd, file=file, connections=connections, duration=test_duration)
+            run_client_script = "{path}/run_client.py".format(path=os.path.dirname(os.path.abspath(__file__)))
+            client_cmd = "{script} --file {file}.bin --connections {connections} --duration {duration}".format(
+                script=run_client_script, file=file, connections=connections, duration=config[Keys.TEST_PARAMS][Keys.DURATION])
             run_cmd_get_output(client_cmd)
-            save_logs_cmd = "cp -rf {src} {dst}".format(src=remote_logs_directory, dst=iteration_dir)
+
+            save_logs_cmd = "cp -rf {src} {dst}".format(
+                src=config[Keys.GENERAL][Keys.REMOTE_LOGS_DIR], dst=iteration_dir)
             run_cmd_and_wait(save_logs_cmd)
-            run_cmd_and_wait("cp -f {file} {dst}".format(file=run_server_cmd, dst=iteration_dir))
-            run_cmd_and_wait("cp -f {file} {dst}".format(file=run_client_cmd, dst=iteration_dir))
-            run_cmd_and_wait("mv {file} {dst}".format(file=commands_log, dst=iteration_dir))
+            run_cmd_and_wait("mv {file} {dst}".format(file=config[Keys.GENERAL][Keys.CMD_LOG_FILE], dst=iteration_dir))
+
+
+def get_total_cases_num():
+    """Return total number of cases."""
+    return (len(config[Keys.TEST_PARAMS][Keys.RUN_TYPES]) *
+            len(config[Keys.TEST_PARAMS][Keys.FILES]) *
+            len(config[Keys.TEST_PARAMS][Keys.CONNECTIONS]))
 
 
 def get_run_time():
     """Return the duration of the total run."""
-    num_of_cases = len(run_type_list) * len(file_list) * len(connections_list)
+    num_of_cases = get_total_cases_num()
     sleep_between_cases = 2 * sleep_sec
-    case_duration_s = sleep_between_cases + test_duration + 3
+    case_duration_s = sleep_between_cases + config[Keys.TEST_PARAMS][Keys.DURATION] + 3
     total_duration_s = num_of_cases * case_duration_s
     total_duration_m = total_duration_s / 60.0
     total_duration_h = total_duration_m / 60.0
@@ -121,12 +114,26 @@ def main():
     duration = "> Test duration estimation time: {0} seconds | {1:.2f} minutes | {2:.2f} hours".format(*get_run_time())
     print duration
 
-    for run_type in run_type_list:
+    cases = "> Test cases in the run: {num}".format(num=get_total_cases_num())
+    print cases
+
+    for run_type in config[Keys.TEST_PARAMS][Keys.RUN_TYPES]:
         print "> Running {run_type} run...".format(run_type=run_type)
         run(run_type)
+
+    save_automation_config_cmd = "cp -f {file} {dst}".format(
+        file=config_file,
+        dst=config[Keys.GENERAL][Keys.RES_DIR])
+    run_cmd_and_wait(save_automation_config_cmd)
+    save_nginx_config_cmd = "cp -f {file} {dst}".format(
+        file=config[Keys.SERVER][Keys.NGINX_CONF],
+        dst=config[Keys.GENERAL][Keys.RES_DIR])
+    run_cmd_and_wait(save_nginx_config_cmd)
+
     print "> Running remote cleanup..."
     kill_scripts()
     print "> Running results parse..."
+    parse_results_cmd = "{path}/parse_results.py".format(path=os.path.dirname(os.path.abspath(__file__)))
     run_cmd_and_wait(parse_results_cmd)
     print "> DONE"
 

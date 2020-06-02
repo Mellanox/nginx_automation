@@ -6,12 +6,54 @@ import os
 import sys
 import subprocess
 import re
+import json
 
 
+config_file = "{path}/{file}".format(path=os.path.dirname(os.path.abspath(__file__)), file="configuration.json")
+
+
+class Keys(object):
+    """Represent configuration file keys."""
+
+    GENERAL = "general_section"
+    CMD_LOG_FILE = "commands_log_file"
+    USER = "ssh_username"
+    RES_DIR = "results_directory"
+    REMOTE_LOGS_DIR = "remote_logs_directory"
+    DURATION = "duration"
+    SERVER = "server_section"
+    NGINX_SERVER = "nginx_server"
+    TEST_PARAMS = "test_parameters_section"
+    RUN_TYPES = "run_types"
+    FILES = "files"
+    CONNECTIONS = "connections"
+    NGINX_STDOUT = "nginx_app_stdout"
+    NUMA = "nic_numa_node"
+    INTERFACE = "interface"
+    NGINX_ROOT = "nginx_root"
+    NGINX_BIN = "nginx_bin"
+    NGINX_CONF = "nginx_conf_file"
+    NGINX_IP = "nginx_ip"
+    NGINX_PORT = "nginx_port"
+    VMA_LIB = "vma_library"
+    VMA_REF_LIB = "vma_library_ref"
+    VMA_PARAMS = "vma_parameters"
+    VMA_REF_PARAMS = "vma_parameters_ref"
+    CLIENT = "client_section"
+    CPUSTAT_BIN = "cpustat_bin"
+    WRK_BIN = "wrk_bin"
+    WRK_SERVERS = "wrk_servers"
+
+
+def get_config():
+    """Return automation configuration structure."""
+    with open(config_file, 'r') as json_file:
+        config = json.load(json_file)
+    return config
+
+
+config = get_config()
 processes = dict()
-home_dir = "/auto/mtrswgwork/simonra"
-commands_log_file = "{home_dir}/{log_path}".format(home_dir=home_dir, log_path="temp/nginx_automation_commands_log.txt")
-host_username = "simonra"
 
 
 def log_common(line, log_file):
@@ -22,7 +64,7 @@ def log_common(line, log_file):
 
 def log_command(line):
     """Log line to the commands log file."""
-    log_common(line=line, log_file=commands_log_file)
+    log_common(line=line, log_file=config[Keys.GENERAL][Keys.CMD_LOG_FILE])
 
 
 def run_cmd_and_wait(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE):
@@ -79,21 +121,21 @@ def get_output_from_pipe(pid, get_errors=False):
 
 def run_remote_cmd_on_backround(cmd, host):
     """Run command remotely through SSH."""
-    remote_cmd = "ssh {user}@{host} \"{command}\"".format(user=host_username, host=host, command=cmd)
+    remote_cmd = "ssh {user}@{host} \"{command}\"".format(user=config[Keys.GENERAL][Keys.USER], host=host, command=cmd)
     pid = run_cmd_on_background(remote_cmd)
     return pid
 
 
 def run_remote_cmd(cmd, host):
     """Run command remotely through SSH and wait to answer."""
-    remote_cmd = "ssh {user}@{host} \"{command}\"".format(user=host_username, host=host, command=cmd)
+    remote_cmd = "ssh {user}@{host} \"{command}\"".format(user=config[Keys.GENERAL][Keys.USER], host=host, command=cmd)
     pid = run_cmd_and_wait(remote_cmd)
     return pid
 
 
 def run_remote_cmd_get_output(cmd, host):
     """Run command remotely through SSH and get the output."""
-    remote_cmd = "ssh {user}@{host} \"{command}\"".format(user=host_username, host=host, command=cmd)
+    remote_cmd = "ssh {user}@{host} \"{command}\"".format(user=config[Keys.GENERAL][Keys.USER], host=host, command=cmd)
     pid = run_cmd_on_background(remote_cmd)
     output = get_output_from_pipe(pid)
     return output
