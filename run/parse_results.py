@@ -44,6 +44,14 @@ def convert_results_to_csv(run_type, results):
     with open(output_csv_file, 'w') as file:
         file.write(csv_header)
         for result in results:
+            if result["results"]["throughput"] > 0:
+                cpu_gbps = result["results"]["server_cpu_utilization"] / result["results"]["throughput"]
+            else:
+                cpu_gbps = 0
+            if result["results"]["requests"] > 0:
+                cpu_rps = result["results"]["server_cpu_utilization"] / result["results"]["requests"]
+            else:
+                cpu_rps = 0
             line = csv_line.format(
                 workers=result["test_details"]["nginx_workers"],
                 file_size=result["test_details"]["file"][:-4],
@@ -52,10 +60,8 @@ def convert_results_to_csv(run_type, results):
                 requests=result["results"]["requests"],
                 concurrent_connections=result["results"]["connections"],
                 cpu=result["results"]["server_cpu_utilization"],
-                cpu_gbps=float("{:.4f}".format(
-                    result["results"]["server_cpu_utilization"] / result["results"]["throughput"])),
-                cpu_rps=float("{:.4f}".format(
-                    result["results"]["server_cpu_utilization"] / result["results"]["requests"]))
+                cpu_gbps=float("{:.4f}".format(cpu_gbps)),
+                cpu_rps=float("{:.4f}".format(cpu_rps))
             )
             file.write(line)
 
