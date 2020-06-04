@@ -45,6 +45,7 @@ class Keys(object):
     WRK_SERVERS = "wrk_servers"
     NGINX_WORKERS = "nginx_workers"
 
+
 def get_config():
     """Return automation configuration structure."""
     with open(config_file, 'r') as json_file:
@@ -133,9 +134,14 @@ def run_remote_cmd(cmd, host):
     return pid
 
 
-def run_remote_cmd_get_output(cmd, host):
+def run_remote_cmd_get_output(cmd, host, timeout=None):
     """Run command remotely through SSH and get the output."""
-    remote_cmd = "ssh {user}@{host} \"{command}\"".format(user=config[Keys.GENERAL][Keys.USER], host=host, command=cmd)
+    if timeout is not None:
+        timeout_str = "timeout {seconds} ".format(seconds=timeout)
+    else:
+        timeout_str = ""
+    remote_cmd = "{timeout_str}ssh {user}@{host} \"{command}\"".format(
+        timeout_str=timeout_str, user=config[Keys.GENERAL][Keys.USER], host=host, command=cmd)
     pid = run_cmd_on_background(remote_cmd)
     output = get_output_from_pipe(pid)
     return output

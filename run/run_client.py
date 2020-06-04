@@ -23,6 +23,7 @@ client_details = dict()
 
 # Durations used in the script:
 wrk_socket_timeout = 2
+command_timeout = 15
 
 # Log files:
 wrk_output_file = "/tmp/wrk_out.log"
@@ -196,7 +197,8 @@ def collect_metrics_after_test(options):
     # Get number of connections from Nginx after the test:
     get_server_connection_cmd = \
         "curl -s {server_url}/stub_status | tail -2 | head -1".format(server_url=server_url)
-    output = run_remote_cmd_get_output(cmd=get_server_connection_cmd, host=config[Keys.SERVER][Keys.NGINX_SERVER])
+    output = run_remote_cmd_get_output(
+        cmd=get_server_connection_cmd, host=config[Keys.SERVER][Keys.NGINX_SERVER], timeout=command_timeout)
     if output.replace(" ", "") is not "":
         server_results["connections_num_after"] = int(output.replace("\n", "").split()[1])
 
