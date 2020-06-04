@@ -115,19 +115,54 @@ def get_run_time():
     return total_duration_s, total_duration_m, total_duration_h
 
 
+def print_run_parameters():
+    """Print parameters of the run."""
+    seperator = "{:-^80}".format("")
+    table_seperator =  "{:=^80}".format("")
+    print table_seperator
+    print "{:^80}".format("Test Parameters")
+    print table_seperator
+
+    duration = "| Single case duration: {duration} seconds".format(duration=config[Keys.TEST_PARAMS][Keys.DURATION])
+    print duration
+    print seperator
+
+    total_duration = "| Total duration estimation time: {0} seconds = {1:.2f} minutes = {2:.2f} hours".format(
+        *get_run_time())
+    print total_duration
+    print seperator
+
+    cases = "| Number of cases: {num}".format(num=get_total_cases_num())
+    print cases
+    print seperator
+
+    run_types = "| Run types: {types}".format(types=",".join(config[Keys.TEST_PARAMS][Keys.RUN_TYPES]))
+    print run_types
+    print seperator
+
+    workers = "| Nginx workers: {workers}".format(workers=",".join(config[Keys.TEST_PARAMS][Keys.NGINX_WORKERS]))
+    print workers
+    print seperator
+
+    files = "| Files: {files}".format(files=",".join(config[Keys.TEST_PARAMS][Keys.FILES]))
+    print files
+    print seperator
+
+    connections = "| Connections: {connections}".format(connections=",".join(config[Keys.TEST_PARAMS][Keys.CONNECTIONS]))
+    print connections
+
+    print table_seperator
+
+
 def main():
     """Run main entry point of the script."""
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
 
+    print_run_parameters()
+
     print "> Running cleanup..."
     run_cleanup()
-
-    duration = "> Test duration estimation time: {0} seconds | {1:.2f} minutes | {2:.2f} hours".format(*get_run_time())
-    print duration
-
-    cases = "> Test cases in the run: {num}".format(num=get_total_cases_num())
-    print cases
 
     for run_type in config[Keys.TEST_PARAMS][Keys.RUN_TYPES]:
         print "> Running {run_type} run...".format(run_type=run_type)
@@ -147,6 +182,7 @@ def main():
     print "> Running results parse..."
     parse_results_cmd = "{path}/parse_results.py".format(path=os.path.dirname(os.path.abspath(__file__)))
     run_cmd_and_wait(parse_results_cmd)
+    print "> Results directory location: {path}".format(path=config[Keys.GENERAL][Keys.RES_DIR])
     print "> DONE"
 
 
