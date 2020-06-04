@@ -15,8 +15,8 @@
         "nginx_bin": "/auto/mtrswgwork/simonra/tools/nginx/sbin/nginx_release",
         "nginx_conf_file": "/auto/mtrswgwork/simonra/tools/nginx/conf/vma_nginx.conf",
         "cpustat_bin": "/auto/mtrswgwork/simonra/tools/cpustat/cpustat",
-        "vma_library": "/auto/mtrswgwork/simonra/dev/libvma/src/vma/.libs/libvma.so",
-        "vma_library_ref": "/auto/mtrswgwork/simonra/tasks/task_182/libvma.so.198.9.5_master",
+        "vma_library": "/auto/mtrswgwork/simonra/tasks/task_182/libs/libvma.so.multiple_concurrent_connections",
+        "vma_library_ref": "/auto/mtrswgwork/simonra/tasks/task_182/libs/libvma.so.master_gitlab",
         "vma_parameters": [
             "VMA_TX_SEGS_TCP=4000000",
             "VMA_RX_WRE=32000",
