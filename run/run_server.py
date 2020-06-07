@@ -31,6 +31,8 @@ def run_cleanup():
     run_remote_cmd_get_output(cmd=clean_nginx_cmd, host=config[Keys.SERVER][Keys.NGINX_SERVER])
     clean_cpustat_cmd = "ps -ef | grep cpustat | awk \'\"\'{print $2}\'\"\' | xargs sudo kill -9 > /dev/null 2>&1"
     run_remote_cmd_get_output(cmd=clean_cpustat_cmd, host=config[Keys.SERVER][Keys.NGINX_SERVER])
+    clean_stats_files_cmd = "rm -f /tmp/vmastat*"
+    run_remote_cmd_get_output(cmd=clean_stats_files_cmd, host=config[Keys.SERVER][Keys.NGINX_SERVER])
 
 
 def init(options):
@@ -61,7 +63,7 @@ def run_nginx(options):
         library = ""
         env_variables = ""
 
-    run_nginx_cmd = ("{library} {env_variables} numactl --preferred {numa_node}"
+    run_nginx_cmd = ("cd /tmp/ ; {library} {env_variables} numactl --preferred {numa_node}"
                      " {_bin} -c {conf_file} -p {root} > {log} 2>&1")
     run_nginx_cmd = run_nginx_cmd.format(
         library=library, env_variables=env_variables,
