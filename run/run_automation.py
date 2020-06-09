@@ -32,6 +32,9 @@ def kill_scripts(do_sleep=True):
         cmd="ps -ef | grep nginx | awk \'\"\'{print $2}\'\"\' | xargs sudo kill -9 > /dev/null 2>&1",
         host=config[Keys.SERVER][Keys.NGINX_SERVER])
 
+    for pid, process in processes.items():
+        clean_up_cmd(pid)
+
     if do_sleep is True:
         time.sleep(sleep_sec)
 
@@ -118,7 +121,7 @@ def get_run_time():
 def print_run_parameters():
     """Print parameters of the run."""
     seperator = "{:-^80}".format("")
-    table_seperator =  "{:=^80}".format("")
+    table_seperator = "{:=^80}".format("")
     print table_seperator
     print "{:^80}".format("Test Parameters")
     print table_seperator
@@ -148,7 +151,8 @@ def print_run_parameters():
     print files
     print seperator
 
-    connections = "| Connections: {connections}".format(connections=",".join(config[Keys.TEST_PARAMS][Keys.CONNECTIONS]))
+    connections = "| Connections: {connections}".format(
+        connections=",".join(config[Keys.TEST_PARAMS][Keys.CONNECTIONS]))
     print connections
 
     print table_seperator

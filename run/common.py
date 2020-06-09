@@ -145,3 +145,24 @@ def run_remote_cmd_get_output(cmd, host, timeout=None):
     pid = run_cmd_on_background(remote_cmd)
     output = get_output_from_pipe(pid)
     return output
+
+
+def clean_up_cmd(pid):
+    """Clean up process."""
+    try:
+        processes[str(pid)].kill()
+    except Exception:
+        # The process may be dead before, and it will fail.
+        pass
+
+    try:
+        processes[str(pid)].stdout.close()
+    except Exception:
+        # The process may be dead before, and it will fail.
+        pass
+
+    try:
+        del processes[str(pid)]
+    except Exception:
+        # if someone deleted it before, or bad pid.
+        pass

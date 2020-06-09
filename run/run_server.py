@@ -85,6 +85,7 @@ def add_options(parser):
 def main():
     """Run main entry point of the script."""
     signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
 
     usage = "usage: %prog options\n"
     parser = OptionParser(usage=usage)
