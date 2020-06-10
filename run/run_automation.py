@@ -32,6 +32,9 @@ def kill_scripts(do_sleep=True):
         cmd="ps -ef | grep nginx | awk \'\"\'{print $2}\'\"\' | xargs sudo kill -9 > /dev/null 2>&1",
         host=config[Keys.SERVER][Keys.NGINX_SERVER])
 
+    for client in config[Keys.CLIENT][Keys.WRK_SERVERS]:
+        run_remote_cmd_get_output(cmd="pkill -9 wrk", host=client)
+
     for pid, process in processes.items():
         clean_up_cmd(pid)
 
