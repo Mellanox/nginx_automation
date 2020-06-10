@@ -421,9 +421,9 @@ def calculate_results(options):
                 all_wrk_logs_dir=all_wrk_logs_dir)
             run_cmd_and_wait(cmd=get_log_file_cmd, stdout=open(os.devnull, 'w'))
         with open(log_file, 'r') as wrk_output_file:
-            bw_result_bps = rps_result = 0
+            bw_result_bps = rps_result = sent_requests_result = 0
             lat_avg_result = lat_stdv_result = lat_max_result = sock_err_timeout_result = 0
-            bw_result_str = rps_result_str = sock_err_timeout_str = ""
+            bw_result_str = rps_result_str = sock_err_timeout_str = sent_requests_str = ""
             lat_avg_result_str = lat_stdv_result_str = lat_max_result_str = ""
             for line in wrk_output_file:
                 if "Transfer/sec" in line:
