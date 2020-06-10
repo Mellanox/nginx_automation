@@ -22,7 +22,7 @@
             "VMA_RX_WRE=32000",
             "VMA_TX_BUFS=1000000",
             "VMA_TX_BUF_SIZE=1500",
-            "VMA_TSO_SEGMENT_SIZE=32768",
+            "VMA_ZC_TX_SIZE=32768",
             "VMA_CQ_POLL_BATCH_MAX=128",
             "VMA_TCP_SEND_BUFFER_SIZE=20000000"
         ],
