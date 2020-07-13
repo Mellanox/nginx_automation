@@ -97,6 +97,9 @@ def build_result_structures():
                 "rps": 0,
                 "lat_avg": 0,
                 "lat_max": 0,
+                "sock_err_connect": 0,
+                "sock_err_read": 0,
+                "sock_err_write": 0,
                 "sock_err_timeout": 0,
                 "completed_requests": 0,
                 "sent_requests": 0
@@ -116,6 +119,9 @@ def build_result_structures():
                 "lat_avg": {"result": [], "str": []},
                 "lat_stdv": {"result": [], "str": []},
                 "lat_max": {"result": [], "str": []},
+                "sock_err_connect": {"result": [], "str": []},
+                "sock_err_read": {"result": [], "str": []},
+                "sock_err_write": {"result": [], "str": []},
                 "sock_err_timeout": {"result": [], "str": []},
                 "completed_requests": {"result": [], "str": []},
                 "sent_requests": {"result": [], "str": []}
@@ -146,6 +152,9 @@ def build_result_structures():
             "max_latency": 0,
             "sent_requests": 0,
             "completed_requests": 0,
+            "socket_connect_errors": 0,
+            "socket_read_errors": 0,
+            "socket_write_errors": 0,
             "socket_timeout_errors": 0,
             "tcp_syn_retrans": 0,
 
@@ -346,16 +355,16 @@ def get_latency_result(line):
             lat_max_result_str, lat_max_result)
 
 
-def get_sock_err_timeout_result(line):
-    """Return socket timeout error result."""
-    sock_err_timeout_str = line.split()[9]
-    if sock_err_timeout_str.replace(" ", "") is "":
-        sock_err_timeout_str = str(0)
+def get_sock_err_result_helper(line, error_index):
+    """Return socket error result helper function."""
+    sock_err_str = line.split()[error_index].replace(",", "")
+    if sock_err_str.replace(" ", "") is "":
+        sock_err_str = str(0)
     result_units = ""
-    sock_err_timeout_result = int(sock_err_timeout_str)
-    sock_err_timeout_result_str = "{result:,} {units}".format(result=sock_err_timeout_result, units=result_units)
+    sock_err_result = int(sock_err_str)
+    sock_err_result_str = "{result:,} {units}".format(result=sock_err_result, units=result_units)
 
-    return (sock_err_timeout_result_str, sock_err_timeout_result)
+    return (sock_err_result_str, sock_err_result)
 
 
 def get_completed_requests_result(line):
@@ -422,8 +431,10 @@ def calculate_results(options):
             run_cmd_and_wait(cmd=get_log_file_cmd, stdout=open(os.devnull, 'w'))
         with open(log_file, 'r') as wrk_output_file:
             bw_result_bps = rps_result = sent_requests_result = 0
-            lat_avg_result = lat_stdv_result = lat_max_result = sock_err_timeout_result = 0
-            bw_result_str = rps_result_str = sock_err_timeout_str = sent_requests_str = ""
+            lat_avg_result = lat_stdv_result = lat_max_result = 0
+            sock_err_connect_result = sock_err_read_result = sock_err_write_result = sock_err_timeout_result = 0
+            bw_result_str = rps_result_str = sent_requests_str = ""
+            sock_err_connect_str = sock_err_read_str = sock_err_write_str = sock_err_timeout_str = ""
             lat_avg_result_str = lat_stdv_result_str = lat_max_result_str = ""
             for line in wrk_output_file:
                 if "Transfer/sec" in line:
@@ -435,7 +446,10 @@ def calculate_results(options):
                         lat_stdv_result_str, lat_stdv_result,
                         lat_max_result_str, lat_max_result) = get_latency_result(line)
                 elif "Socket errors" in line:
-                    (sock_err_timeout_str, sock_err_timeout_result) = get_sock_err_timeout_result(line)
+                    (sock_err_connect_str, sock_err_connect_result) = get_sock_err_result_helper(line, 3)
+                    (sock_err_read_str, sock_err_read_result) = get_sock_err_result_helper(line, 5)
+                    (sock_err_write_str, sock_err_write_result) = get_sock_err_result_helper(line, 7)
+                    (sock_err_timeout_str, sock_err_timeout_result) = get_sock_err_result_helper(line, 9)
                 elif "requests in" in line:
                     (completed_requests_str, completed_requests_result) = get_completed_requests_result(line)
                 elif "Total requests sent" in line:
@@ -451,6 +465,12 @@ def calculate_results(options):
         cur_rst["lat_stdv"]["str"].append(lat_stdv_result_str)
         cur_rst["lat_max"]["result"].append(lat_max_result)
         cur_rst["lat_max"]["str"].append(lat_max_result_str)
+        cur_rst["sock_err_connect"]["result"].append(sock_err_connect_result)
+        cur_rst["sock_err_connect"]["str"].append(sock_err_connect_str)
+        cur_rst["sock_err_read"]["result"].append(sock_err_read_result)
+        cur_rst["sock_err_read"]["str"].append(sock_err_read_str)
+        cur_rst["sock_err_write"]["result"].append(sock_err_write_result)
+        cur_rst["sock_err_write"]["str"].append(sock_err_write_str)
         cur_rst["sock_err_timeout"]["result"].append(sock_err_timeout_result)
         cur_rst["sock_err_timeout"]["str"].append(sock_err_timeout_str)
         cur_rst["completed_requests"]["result"].append(completed_requests_result)
@@ -462,6 +482,9 @@ def calculate_results(options):
 
     all_clients_lat_avg_list = list()
     all_clients_lat_max_list = list()
+    all_clients_sock_err_connect_list = list()
+    all_clients_sock_err_read_list = list()
+    all_clients_sock_err_write_list = list()
     all_clients_sock_err_timeout_list = list()
     all_clients_completed_requests_list = list()
     all_clients_sent_requests_list = list()
@@ -469,12 +492,18 @@ def calculate_results(options):
         result = value["results"]
         all_clients_lat_avg_list += result["lat_avg"]["result"]
         all_clients_lat_max_list += result["lat_max"]["result"]
+        all_clients_sock_err_connect_list += result["sock_err_connect"]["result"]
+        all_clients_sock_err_read_list += result["sock_err_read"]["result"]
+        all_clients_sock_err_write_list += result["sock_err_write"]["result"]
         all_clients_sock_err_timeout_list += result["sock_err_timeout"]["result"]
         all_clients_completed_requests_list += result["completed_requests"]["result"]
         all_clients_sent_requests_list += result["sent_requests"]["result"]
 
     client_results["total"]["results"]["lat_avg"] = sum(all_clients_lat_avg_list) / len(all_clients_lat_avg_list)
     client_results["total"]["results"]["lat_max"] = max(all_clients_lat_max_list)
+    client_results["total"]["results"]["sock_err_connect"] = sum(all_clients_sock_err_connect_list)
+    client_results["total"]["results"]["sock_err_read"] = sum(all_clients_sock_err_read_list)
+    client_results["total"]["results"]["sock_err_write"] = sum(all_clients_sock_err_write_list)
     client_results["total"]["results"]["sock_err_timeout"] = sum(all_clients_sock_err_timeout_list)
     client_results["total"]["results"]["completed_requests"] = sum(all_clients_completed_requests_list)
     client_results["total"]["results"]["sent_requests"] = sum(all_clients_sent_requests_list)
@@ -497,8 +526,12 @@ def print_results(options):
 
     worker_result_format = (
         "Client {id_:<2} --> BW: {bw:<12} | RPS: {rps:<12} | LAT AVG: {lat_avg:<12} |"
-        " LAT STDV: {lat_stdv:<12} | LAT MAX: {lat_max:<12} | Timeout ERR: {sock_err_timeout:<5} |"
-        " Sent requests: {sent_requests:<5} | Completed requests: {completed_requests:<5}")
+        " LAT STDV: {lat_stdv:<12} | LAT MAX: {lat_max:<12} |"
+        " Sent requests: {sent_requests:<5} | Completed requests: {completed_requests:<5} |"
+        " Connect ERR: {sock_err_connect:<5} |"
+        " Read ERR: {sock_err_read:<5} |"
+        " Write ERR: {sock_err_write:<5} |"
+        " Timeout ERR: {sock_err_timeout:<5} |")
     id_counter = 1
     log("\n{:*^80}\n".format(" Clients Results Summary "))
 
@@ -513,6 +546,9 @@ def print_results(options):
                 lat_avg=result["lat_avg"]["str"][wrk_index],
                 lat_stdv=result["lat_stdv"]["str"][wrk_index],
                 lat_max=result["lat_max"]["str"][wrk_index],
+                sock_err_connect=result["sock_err_connect"]["str"][wrk_index],
+                sock_err_read=result["sock_err_read"]["str"][wrk_index],
+                sock_err_write=result["sock_err_write"]["str"][wrk_index],
                 sock_err_timeout=result["sock_err_timeout"]["str"][wrk_index],
                 completed_requests=result["completed_requests"]["str"][wrk_index],
                 sent_requests=result["sent_requests"]["str"][wrk_index])
@@ -544,6 +580,12 @@ def print_results(options):
         sent_requests=client_results["total"]["results"]["sent_requests"]))
     log("------- Completed requests:     {completed_requests:,}".format(
         completed_requests=client_results["total"]["results"]["completed_requests"]))
+    log("------- Socket connect error:   {sock_err_connect:,}".format(
+        sock_err_connect=client_results["total"]["results"]["sock_err_connect"]))
+    log("------- Socket read error:      {sock_err_read:,}".format(
+        sock_err_read=client_results["total"]["results"]["sock_err_read"]))
+    log("------- Socket write error:     {sock_err_write:,}".format(
+        sock_err_write=client_results["total"]["results"]["sock_err_write"]))
     log("------- Socket timeout error:   {sock_err_timeout:,}".format(
         sock_err_timeout=client_results["total"]["results"]["sock_err_timeout"]))
     log("------- TCPSynRetrans:          {retrans:,}".format(
@@ -566,6 +608,9 @@ def print_results(options):
     total_results["results"]["max_latency"] = client_results["total"]["results"]["lat_max"]
     total_results["results"]["sent_requests"] = client_results["total"]["results"]["sent_requests"]
     total_results["results"]["completed_requests"] = client_results["total"]["results"]["completed_requests"]
+    total_results["results"]["socket_connect_errors"] = client_results["total"]["results"]["sock_err_connect"]
+    total_results["results"]["socket_read_errors"] = client_results["total"]["results"]["sock_err_read"]
+    total_results["results"]["socket_write_errors"] = client_results["total"]["results"]["sock_err_write"]
     total_results["results"]["socket_timeout_errors"] = client_results["total"]["results"]["sock_err_timeout"]
     total_results["results"]["tcp_syn_retrans"] = client_results["total"]["metrics"]["tcp_syn_retransmit"]
 
