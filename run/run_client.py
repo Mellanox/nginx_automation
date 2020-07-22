@@ -180,7 +180,11 @@ def collect_metrics_before_test(options):
     get_vma_irqs_cmd = "cat /proc/interrupts | grep \"{interface}-0\"".format(
         interface=config[Keys.SERVER][Keys.INTERFACE])
     output = run_remote_cmd_get_output(cmd=get_vma_irqs_cmd, host=config[Keys.SERVER][Keys.NGINX_SERVER])
-    server_results["num_of_vma_irqs_before"] = int(output.split()[1])
+    if output.replace(" ", "") is "":
+        output = 0
+    else:
+        output = output.split()[1]
+    server_results["num_of_vma_irqs_before"] = int(output)
 
     ### Get client metrics before the test ###
 
@@ -219,7 +223,11 @@ def collect_metrics_after_test(options):
     get_vma_irqs_cmd = "cat /proc/interrupts | grep \"{interface}-0\"".format(
         interface=config[Keys.SERVER][Keys.INTERFACE])
     output = run_remote_cmd_get_output(cmd=get_vma_irqs_cmd, host=config[Keys.SERVER][Keys.NGINX_SERVER])
-    server_results["num_of_vma_irqs_after"] = int(output.split()[1])
+    if output.replace(" ", "") is "":
+        output = 0
+    else:
+        output = output.split()[1]
+    server_results["num_of_vma_irqs_after"] = int(output)
 
     # Get total number of connections during the test:
     server_results["num_of_vma_irqs_total"] = server_results["num_of_vma_irqs_after"] - \
