@@ -1,6 +1,7 @@
 {
     "general_section": {
         "ssh_username": "simonra",
+        "run_as_super_user": true,
         "commands_log_file": "/auto/mtrswgwork/simonra/temp/nginx_automation_commands_log.txt",
         "results_directory": "/auto/mtrswgwork/simonra/temp/nginx_automation_results",
         "remote_logs_directory": "/auto/mtrswgwork/simonra/temp/nginx_automation_logs"

@@ -44,6 +44,7 @@ class Keys(object):
     WRK_BIN = "wrk_bin"
     WRK_SERVERS = "wrk_servers"
     NGINX_WORKERS = "nginx_workers"
+    SUPER_USER = "run_as_super_user"
 
 
 def get_config():

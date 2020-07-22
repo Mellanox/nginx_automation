@@ -31,7 +31,11 @@ def run_cleanup():
     run_remote_cmd_get_output(cmd=clean_nginx_cmd, host=config[Keys.SERVER][Keys.NGINX_SERVER])
     clean_cpustat_cmd = "ps -ef | grep cpustat | awk \'\"\'{print $2}\'\"\' | xargs sudo kill -9 > /dev/null 2>&1"
     run_remote_cmd_get_output(cmd=clean_cpustat_cmd, host=config[Keys.SERVER][Keys.NGINX_SERVER])
-    clean_stats_files_cmd = "rm -f /tmp/vmastat*"
+    if config[Keys.GENERAL][Keys.SUPER_USER] is True:
+        super_user = "sudo"
+    else:
+        super_user = ""
+    clean_stats_files_cmd = "{super_user} rm -f /tmp/vmastat*".format(super_user=super_user)
     run_remote_cmd_get_output(cmd=clean_stats_files_cmd, host=config[Keys.SERVER][Keys.NGINX_SERVER])
 
 
@@ -63,10 +67,15 @@ def run_nginx(options):
         library = ""
         env_variables = ""
 
-    run_nginx_cmd = ("cd /tmp/ ; {library} {env_variables} numactl --preferred {numa_node}"
+    if config[Keys.GENERAL][Keys.SUPER_USER] is True:
+        super_user = "sudo"
+    else:
+        super_user = ""
+
+    run_nginx_cmd = ("cd /tmp/ ; {super_user} {library} {env_variables} numactl --preferred {numa_node}"
                      " {_bin} -c {conf_file} -p {root} > {log} 2>&1")
     run_nginx_cmd = run_nginx_cmd.format(
-        library=library, env_variables=env_variables,
+        super_user=super_user, library=library, env_variables=env_variables,
         numa_node=config[Keys.SERVER][Keys.NUMA], _bin=config[Keys.SERVER][Keys.NGINX_BIN],
         conf_file=config[Keys.SERVER][Keys.NGINX_CONF], root=config[Keys.SERVER][Keys.NGINX_ROOT], log=nginx_log
     )
