@@ -43,7 +43,11 @@ def init(options):
     """Initialize script."""
     update_workers_cmd = "sed \"s/worker_processes.*/worker_processes {workers};/g\" -i {config_file}".format(
         workers=options.workers, config_file=config[Keys.SERVER][Keys.NGINX_CONF])
+    server_ip=config[Keys.SERVER][Keys.NGINX_IP] + ":" + config[Keys.SERVER][Keys.NGINX_PORT]
+    update_server_ip_cmd = "sed  \"/listen.*$/ s/[0-9]\+\.[0-9]\+\.[0-9]\+\.[0-9]\+:[0-9]\+/{ip}/g\" -i {config_file}".format(
+        ip=server_ip, config_file=config[Keys.SERVER][Keys.NGINX_CONF])
     run_cmd_get_output(update_workers_cmd)
+    run_cmd_get_output(update_server_ip_cmd)
     get_workers_cmd = "cat {config_file} | grep worker_processes | head -n 1".format(
         config_file=config[Keys.SERVER][Keys.NGINX_CONF])
     output = run_cmd_get_output(get_workers_cmd)
